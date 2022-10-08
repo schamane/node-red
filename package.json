@@ -8,14 +8,25 @@
         "type": "git",
         "url": "https://github.com/node-red/node-red.git"
     },
-    "private": "true",
+    "private": true,
+    "workspaces": [
+        "packages/*",
+        "@node-red/*"
+    ],
     "scripts": {
-        "start": "node packages/node_modules/node-red/red.js",
-        "test": "grunt",
-        "build": "grunt build",
-        "dev": "grunt dev",
-        "build-dev": "grunt build-dev",
-        "docs": "grunt docs"
+        "old:start": "node packages/node_modules/node-red/red.js",
+        "old:test": "grunt",
+        "old:build": "grunt build",
+        "old:dev": "grunt dev",
+        "old:build-dev": "grunt build-dev",
+        "old:docs": "grunt docs",
+        "build": "turbo run build --cache-dir=.turbo-cache",
+        "depcheck": "turbo run depcheck --cache-dir=.turbo-cache",
+        "lint": "turbo run lint --cache-dir=.turbo-cache",
+        "pack": "turbo run pack --cache-dir=.turbo-cache",
+        "build:check": "turbo run build:check --cache-dir=.turbo-cache",
+        "clean": "turbo run clean --cache-dir=.turbo-cache",
+        "test": "turbo run test --cache-dir=.turbo-cache"
     },
     "contributors": [
         {
@@ -23,6 +34,9 @@
         },
         {
             "name": "Dave Conway-Jones"
+        },
+        {
+            "name": "Nazar Kulyk"
         }
     ],
     "dependencies": {
@@ -85,6 +99,10 @@
         "bcrypt": "5.0.1"
     },
     "devDependencies": {
+        "depcheck": "latest",
+        "turbo": "^1.5.5"
+    },
+    "old:devDependencies": {
         "dompurify": "2.3.10",
         "grunt": "1.5.3",
         "grunt-chmod": "~1.1.1",
@@ -121,6 +139,6 @@
         "supertest": "6.2.4"
     },
     "engines": {
-        "node": ">=14"
+        "node": ">=16"
     }
 }

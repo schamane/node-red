@@ -1,0 +1,14 @@
+[35m@node-red/util:depcheck[0m: cache hit, replaying output [2m63063486db52f162[0m
+[35m@node-red/util:depcheck: [0m
+[35m@node-red/util:depcheck: [0m> @node-red/util@3.0.2 depcheck
+[35m@node-red/util:depcheck: [0m> npx depcheck
+[35m@node-red/util:depcheck: [0m
+[35m@node-red/util:depcheck: [0mUnused dependencies
+[35m@node-red/util:depcheck: [0m* fs-extra
+[35m@node-red/util:depcheck: [0m* moment
+[35m@node-red/util:depcheck: [0mMissing dependencies
+[35m@node-red/util:depcheck: [0m* @node-red/util: ./lib/events.js
+[35m@node-red/util:depcheck: [0mnpm ERR! Lifecycle script `depcheck` failed with error: 
+[35m@node-red/util:depcheck: [0mnpm ERR! Error: command failed 
+[35m@node-red/util:depcheck: [0mnpm ERR!   in workspace: @node-red/util@3.0.2 
+[35m@node-red/util:depcheck: [0mnpm ERR!   at location: /Users/d447/git/schamane/node-red/@node-red/util 

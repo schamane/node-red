@@ -1,0 +1,49 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "@node-red/util"
+      ]
+    },
+    "build:check": {
+      "dependsOn": [
+        "^build:check"
+      ],
+      "outputs": [
+        "lib/**"
+      ]
+    },
+    "depcheck": {
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "pack": {
+      "dependsOn": [
+        "^build",
+        "^pack"
+      ],
+      "outputs": []
+    },
+    "test": {
+      "outputs": []
+    },
+    "clean": {
+      "cache": false
+    },
+    "check": {
+      "dependsOn": [
+        "clean",
+        "^lint",
+        "depcheck",
+        "build:check"
+      ],
+      "cache": false
+    }
+  }
+}

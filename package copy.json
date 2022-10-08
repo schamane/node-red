@@ -1,0 +1,46 @@
+{
+    "name": "node-red",
+    "version": "3.0.2",
+    "description": "Low-code programming for event-driven applications",
+    "homepage": "http://nodered.org",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/node-red/node-red.git"
+    },
+    "private": "true",
+    "workspaces": [
+        "packages/*",
+        "apps/*",
+        "@node-red/*"
+      ],
+    "scripts": {
+        "build": "turbo run build --cache-dir=.turbo-cache",
+        "depcheck": "turbo run depcheck --cache-dir=.turbo-cache",
+        "lint": "turbo run lint --cache-dir=.turbo-cache",
+        "pack": "turbo run pack --cache-dir=.turbo-cache",
+        "build:check": "turbo run build:check --cache-dir=.turbo-cache",
+        "clean": "turbo run clean --cache-dir=.turbo-cache",
+        "test": "turbo run test --cache-dir=.turbo-cache"
+    },
+    "contributors": [
+        {
+            "name": "Nick O'Leary"
+        },
+        {
+            "name": "Dave Conway-Jones"
+        },
+        {
+            "name": "Nazar Kulyk"
+        }
+    ],
+    "devDependencies": {
+        "turbo": "latest",
+        "depcheck": "latest"
+    },
+    "engines": {
+        "npm": ">=8.11.0",
+        "node": ">=16.17.0"
+      },
+      "packageManager": "npm@8.11.0"
+}
