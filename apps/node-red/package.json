@@ -11,6 +11,7 @@
     "main": "lib/red.js",
     "scripts": {
         "start": "node red.js",
+        "dev": "nodemon red.js",
         "depcheck": "npx depcheck"
     },
     "bin": {
@@ -41,10 +42,10 @@
         "@node-red/nodes": "3.0.2",
         "semver": "7.3.7"
     },
-    "optionalDependencies": {
-        "bcrypt": "5.0.1"
+    "devDependencies": {
+        "nodemon": "^2.0.20"
     },
     "engines": {
-        "node": ">=14"
+        "node": ">=16"
     }
 }

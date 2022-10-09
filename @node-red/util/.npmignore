@@ -1,2 +1,6 @@
 src
 docs
+.turbo
+tsconfig.json
+.eslintrc
+.depcheckrc
