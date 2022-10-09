@@ -6,6 +6,23 @@
         "type": "git",
         "url": "https://github.com/node-red/node-red.git"
     },
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "source": "src/index.ts",
+    "module": "./lib/index.mjs",
+    "exports": {
+        ".": {
+            "import": "./lib/index.mjs",
+            "require": "./lib/index.js"
+        }
+    },
+    "directories": {
+        "src": "src",
+        "test": "__tests__"
+    },
+    "files": [
+        "lib"
+    ],
     "contributors": [
         {
             "name": "Nick O'Leary"
@@ -18,7 +35,15 @@
         }
     ],
     "scripts": {
-        "depcheck": "npx depcheck"
+        "depcheck": "npx depcheck",
+        "clean": "rimraf lib",
+        "watch:ts": "npm run clean && tsc -w",
+        "check:watch:ts": "npm run clean && tsc -w --noemit",
+        "check:ts": "npm run clean && tsc --noemit",
+        "lint": "eslint --ext .ts ./src",
+        "lint:fix": "eslint --fix --ext .ts ./src",
+        "build:vite": "npm run clean && vite build",
+        "build": "npm run clean && tsc"
     },
     "dependencies": {
         "i18next": "21.8.16",
@@ -26,5 +51,19 @@
         "jsonata": "1.8.6",
         "lodash.clonedeep": "^4.5.0",
         "moment-timezone": "0.5.34"
+    },
+    "devDependencies": {
+        "@types/node": "^18.8.3",
+        "eslint": "^8.24.0",
+        "prettier-eslint": "^15.0.1",
+        "rimraf": "^3.0.2",
+        "source-map-support": "^0.5.21",
+        "rollup-plugin-polyfill-node": "^0.10.2",
+        "@esbuild-plugins/node-globals-polyfill": "^0.1.1",
+        "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
+        "eslint-config-custom": "*",
+        "tsconfig": "*",
+        "typescript": "*",
+        "vitejs-build": "*"
     }
 }

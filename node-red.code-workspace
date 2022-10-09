@@ -3,18 +3,10 @@
 		{
 			"path": "./",
 			"name": "node-red"
-		},
-		{
-			"path": "apps",
-			"name": "apps"
-		},
-		{
-			"path": "@node-red",
-			"name": "node-red-packages"
 		}
 	],
 	"settings": {
-		"typescript.tsdk": "node_modules/typescript/lib",
+		"typescript.tsdk": "node-red/node_modules/typescript/lib",
 		"typescript.referencesCodeLens.showOnAllFunctions": true,
 		"typescript.referencesCodeLens.enabled": true,
 		"typescript.implementationsCodeLens.enabled": true
