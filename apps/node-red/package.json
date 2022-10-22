@@ -10,9 +10,10 @@
     },
     "main": "lib/red.js",
     "scripts": {
-        "start": "node red.js",
-        "dev": "nodemon red.js",
-        "depcheck": "npx depcheck"
+        "start": "node -r source-map-support/register red.js",
+        "dev": "nodemon --trace-warnings -r source-map-support/register red.js",
+        "depcheck": "npx depcheck",
+        "test": "nodemon --help"
     },
     "bin": {
         "node-red": "./red.js",
@@ -43,7 +44,20 @@
         "semver": "7.3.7"
     },
     "devDependencies": {
-        "nodemon": "^2.0.20"
+        "nodemon": "^2.0.20",
+        "source-map-support": "^0.5.21"
+    },
+    "nodemonConfig": {
+        "ignore": [
+            "src/tests/*",
+            "docs/*"
+        ],
+        "watch": [
+            "lib",
+            "../../"
+        ],
+        "params": "--max_old_space_size=200 -r source-map-support/register",
+        "delay": "2500"
     },
     "engines": {
         "node": ">=16"
