@@ -28,7 +28,7 @@ import jsonata from 'jsonata';
 import moment from 'moment-timezone';
 import safeJSONStringify from 'json-stringify-safe';
 import util from 'node:util';
-import Error from './error.js';
+import { CustomErrorWithCode as Error } from './error.js';
 
 const {
   prototype: { hasOwnProperty }

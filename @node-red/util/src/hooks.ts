@@ -157,7 +157,7 @@ function removeHook(id, hookItem) {
   }
 }
 
-export function trigger(hookId, payload, done) {
+export function trigger(hookId, payload, done?) {
   const hookItem = hooks[hookId];
   if (!hookItem) {
     if (done) {

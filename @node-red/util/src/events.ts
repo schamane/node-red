@@ -21,7 +21,7 @@
 import { EventEmitter } from 'node:events';
 import { warn } from './log';
 
-export const events = new EventEmitter();
+export const events1 = new EventEmitter();
 
 const deprecatedEvents = {
   'nodes-stopped': 'flows:stopped',
@@ -29,28 +29,24 @@ const deprecatedEvents = {
 };
 
 function wrapEventFunction(obj, func) {
-  events['_' + func] = events[func];
+  obj['_' + func] = obj[func];
   return function (eventName, listener) {
-    // eslint-disable-next-line no-prototype-builtins
-    if (deprecatedEvents.hasOwnProperty(eventName)) {
-      // const log = require('@node-red/util').log;
-
+    if (Object.prototype.hasOwnProperty.call(deprecatedEvents, eventName)) {
       const stack = new Error().stack.split('\n');
-      let location = '(unknown)';
       // See https://github.com/node-red/node-red/issues/3292
-      if (stack.length > 2) {
-        location = stack[2].split('(')[1].slice(0, -1);
-      }
+      const location = stack.length > 2 ? stack[2].split('(')[1].slice(0, -1) : '(unknown)';
       warn(`[RED.events] Deprecated use of "${eventName}" event from "${location}". Use "${deprecatedEvents[eventName]}" instead.`);
     }
     // eslint-disable-next-line no-useless-call
-    return events['_' + func].call(events, eventName, listener);
+    return obj['_' + func].call(obj, eventName, listener);
   };
 }
 
-events.on = wrapEventFunction(events, 'on');
-events.once = wrapEventFunction(events, 'once');
-events.addListener = events.on;
+events1.on = wrapEventFunction(events1, 'on');
+events1.once = wrapEventFunction(events1, 'once');
+events1.addListener = events1.on;
+
+export const events = events1;
 
 /**
  * Runtime events emitter

@@ -32,7 +32,6 @@ export const init = (settings) => {
   logInit(settings);
   i18nInit(settings);
 };
-
 /**
  * Logging utilities
  * @mixes @node-red/util_log
@@ -74,3 +73,5 @@ export * as exec from './exec.js';
  * @memberof @node-red/util
  */
 export * as hooks from './hooks.js';
+
+export { CustomErrorWithCode } from './error.js';
