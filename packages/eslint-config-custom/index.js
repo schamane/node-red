@@ -3,8 +3,8 @@ module.exports = {
   "plugins": ["prettier", "@typescript-eslint", "import", "unicorn"],
   "extends": [
     "eslint:recommended",
-    "esnext",
-    "esnext/style-guide",
+    "@nazarkulyk/esnext",
+    "@nazarkulyk/esnext/style-guide",
     "plugin:@typescript-eslint/recommended",
     "prettier",
     "plugin:prettier/recommended",
