@@ -1,3 +1,5 @@
+/// <reference types="node" />
+/// <reference types="node" />
 import { log, util } from '@node-red/util';
 /**
  * This module provides the full Node-RED application, with both the runtime
@@ -212,7 +214,11 @@ declare const _default: {
         };
         nodes: {
             init(_runtime: any): void;
-            getNodeInfo(opts: any): any;
+            getNodeInfo(opts: any): any; /**
+             * Start the Node-RED application.
+             * @return {Promise} - resolves when complete
+             * @memberof node-red
+             */
             getNodeList(opts: any): any;
             getNodeConfig(opts: any): any;
             getNodeConfigs(opts: any): any;
@@ -252,14 +258,14 @@ declare const _default: {
             getBranches(opts: any): any;
             getBranchStatus(opts: any): any;
             setBranch(opts: any): any;
-            deleteBranch(opts: any): any;
-            commit(opts: any): any;
-            getCommit(opts: any): any;
             /**
              * Logging utilities
              * @see @node-red/util_log
              * @memberof node-red
              */
+            deleteBranch(opts: any): any;
+            commit(opts: any): any;
+            getCommit(opts: any): any;
             getCommits(opts: any): any;
             abortMerge(opts: any): any;
             resolveMerge(opts: any): any;
@@ -293,11 +299,7 @@ declare const _default: {
         version: () => any;
         diagnostics: {
             init(_runtime: any): void;
-            get(opts: any): Promise<unknown>; /**
-             * The editor authentication api.
-             * @see @node-red/editor-api_auth
-             * @memberof node-red
-             */
+            get(opts: any): Promise<unknown>;
         };
         storage: {
             projects: any;
@@ -421,15 +423,7 @@ declare const _default: {
                     stores: any[];
                 };
             };
-            plugins: {
-                init(): void;
-                registerPlugin: typeof import("@node-red/registry").registerPlugin;
-                getPlugin: typeof import("@node-red/registry").getPlugin;
-                getPluginsByType: typeof import("@node-red/registry").getPluginsByType;
-                getPluginList: typeof import("@node-red/registry").getPluginList;
-                getPluginConfigs: typeof import("@node-red/registry").getPluginConfigs;
-                exportPluginSettings: typeof import("@node-red/registry").exportPluginSettings;
-            };
+            plugins: typeof import("@node-red/registry");
             flows: {
                 init: (runtime: any) => void;
                 load: (forceStart?: boolean) => any;

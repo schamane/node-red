@@ -1,3 +1,6 @@
+/// <reference types="node" />
+/// <reference types="node" />
+import plugins from '@node-red/registry';
 import { log, i18n, exec, util, hooks } from '@node-red/util';
 /**
  * Initialise the runtime module.
@@ -268,7 +271,7 @@ declare const _default: {
         hooks: typeof hooks;
         nodes: {
             init: (runtime: any) => void;
-            load: typeof import("@node-red/registry").load;
+            load: typeof plugins.load;
             createNode: (node: any, def: any) => void;
             getNode: (id: any) => any;
             eachNode: (cb: any) => void;
@@ -281,19 +284,19 @@ declare const _default: {
             disableNode: (id: any) => any;
             registerType: (nodeSet: any, type: any, constructor: any, opts: any) => void;
             registerSubflow: (nodeSet: any, subflow: any) => void;
-            getType: typeof import("@node-red/registry").get;
-            getNodeInfo: typeof import("@node-red/registry").getNodeInfo;
-            getNodeList: typeof import("@node-red/registry").getNodeList;
-            getModuleInfo: typeof import("@node-red/registry").getModuleInfo;
-            getNodeConfigs: typeof import("@node-red/registry").getNodeConfigs;
-            getNodeConfig: typeof import("@node-red/registry").getNodeConfig;
-            getNodeIconPath: typeof import("@node-red/registry").getNodeIconPath;
-            getNodeIcons: typeof import("@node-red/registry").getNodeIcons;
-            getNodeExampleFlows: typeof import("@node-red/registry").getNodeExampleFlows;
-            getNodeExampleFlowPath: typeof import("@node-red/registry").getNodeExampleFlowPath;
-            getModuleResource: typeof import("@node-red/registry").getModuleResource;
-            clearRegistry: typeof import("@node-red/registry").clear;
-            cleanModuleList: typeof import("@node-red/registry").cleanModuleList;
+            getType: typeof plugins.get;
+            getNodeInfo: typeof plugins.getNodeInfo;
+            getNodeList: typeof plugins.getNodeList;
+            getModuleInfo: typeof plugins.getModuleInfo;
+            getNodeConfigs: typeof plugins.getNodeConfigs;
+            getNodeConfig: typeof plugins.getNodeConfig;
+            getNodeIconPath: typeof plugins.getNodeIconPath;
+            getNodeIcons: typeof plugins.getNodeIcons;
+            getNodeExampleFlows: typeof plugins.getNodeExampleFlows;
+            getNodeExampleFlowPath: typeof plugins.getNodeExampleFlowPath;
+            getModuleResource: typeof plugins.getModuleResource;
+            clearRegistry: typeof plugins.clear;
+            cleanModuleList: typeof plugins.cleanModuleList;
             loadFlows: (forceStart?: boolean) => any;
             startFlows: (type?: any, diff?: any, muteLog?: any, isDeploy?: any) => Promise<void>;
             stopFlows: (type?: any, diff?: any, muteLog?: any, isDeploy?: any) => Promise<void>;
@@ -318,15 +321,7 @@ declare const _default: {
                 stores: any[];
             };
         };
-        plugins: {
-            init(): void;
-            registerPlugin: typeof import("@node-red/registry").registerPlugin;
-            getPlugin: typeof import("@node-red/registry").getPlugin;
-            getPluginsByType: typeof import("@node-red/registry").getPluginsByType;
-            getPluginList: typeof import("@node-red/registry").getPluginList;
-            getPluginConfigs: typeof import("@node-red/registry").getPluginConfigs;
-            exportPluginSettings: typeof import("@node-red/registry").exportPluginSettings;
-        };
+        plugins: typeof plugins;
         flows: {
             init: (runtime: any) => void;
             load: (forceStart?: boolean) => any;

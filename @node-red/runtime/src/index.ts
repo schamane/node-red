@@ -17,7 +17,7 @@
  **/
 
 import { persistentSettings as settings } from './settings.js';
-import plugins from './plugins.js';
+import plugins from '@node-red/registry';
 import { log, i18n, events, exec, util, hooks } from '@node-red/util';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -179,55 +179,48 @@ function start() {
             settings.externalModules.autoInstall &&
             (!settings.externalModules.palette || settings.externalModules.palette.allowInstall !== false);
         }
-        let i;
-        const nodeErrors = redNodes.getNodeList(function (n) {
-          return n.err !== null;
-        });
-        const nodeMissing = redNodes.getNodeList(function (n) {
-          return n.module && n.enabled && !n.loaded && !n.err;
-        });
+        const nodeErrors = redNodes.getNodeList(({ err }) => !!err);
+        const nodeMissing = redNodes.getNodeList(({ module, enabled, loaded, err }) => module && enabled && !loaded && !err);
         if (nodeErrors.length > 0) {
           log.warn('------------------------------------------------------');
-          for (i = 0; i < nodeErrors.length; i += 1) {
-            if (nodeErrors[i]?.err?.code === 'type_already_registered') {
+          nodeErrors.forEach((nodeError) => {
+            console.log('N:', nodeError.err);
+            if (nodeError.err?.code === 'type_already_registered') {
               log.warn(
                 '[' +
-                  nodeErrors[i].id +
+                  nodeError.id +
                   '] ' +
                   log._('server.type-already-registered', {
-                    type: nodeErrors[i].err.details.type,
-                    module: nodeErrors[i].err.details.moduleA
+                    type: nodeError.err.details.type,
+                    module: nodeError.err.details.moduleA
                   })
               );
             } else {
-              log.warn('[' + nodeErrors[i].id + '] ' + nodeErrors[i].err);
+              log.warn('[' + nodeError.id + '] ' + nodeError.err);
             }
-          }
+          });
           log.warn('------------------------------------------------------');
         }
         if (nodeMissing.length > 0) {
           log.warn(log._('server.missing-modules'));
           const missingModules = {};
-          for (i = 0; i < nodeMissing.length; i++) {
-            const missing = nodeMissing[i];
-            missingModules[missing.module] = missingModules[missing.module] || {
-              module: missing.module,
+          const installingModules = [];
+
+          nodeMissing.forEach((missing) => {
+            const { module, types } = missing;
+            missingModules[module] = missingModules[module] || {
+              module,
               version: missing.pending_version || missing.version,
               types: []
             };
-            missingModules[missing.module].types = missingModules[missing.module].types.concat(missing.types);
-          }
-          const moduleList = [];
-          const promises = [];
-          const installingModules = [];
-          for (i in missingModules) {
-            if (missingModules.hasOwnProperty(i)) {
-              log.warn(' - ' + i + ' (' + missingModules[i].version + '): ' + missingModules[i].types.join(', '));
-              if (autoInstallModules && i !== 'node-red') {
-                installingModules.push({ id: i, version: missingModules[i].version });
-              }
+            missingModules[module].types = missingModules[module].types.concat(types);
+
+            log.warn(' - ' + module + ' (' + missingModules[module].version + '): ' + missingModules[module].types.join(', '));
+            if (autoInstallModules && module !== 'node-red') {
+              installingModules.push({ id: module, version: missingModules[module].version });
             }
-          }
+          });
+
           if (!autoInstallModules) {
             log.info(log._('server.removing-modules'));
             redNodes.cleanModuleList();
@@ -252,7 +245,7 @@ function start() {
             log.info(log._('runtime.paths.httpStatic', { path: `${p} > ${r}` }));
           }
         }
-        return redNodes.loadContextsPlugin().then(function () {
+        return redNodes.loadContextsPlugin().then(() => {
           redNodes
             .loadFlows()
             .then(() => {
@@ -344,9 +337,7 @@ function stop() {
     clearTimeout(reinstallTimeout);
   }
   started = false;
-  return redNodes.stopFlows().then(function () {
-    return redNodes.closeContextsPlugin();
-  });
+  return redNodes.stopFlows().then(() => redNodes.closeContextsPlugin());
 }
 // This is the internal api
 const runtime = {

@@ -44,7 +44,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const settings_js_1 = require("./settings.js");
-const plugins_js_1 = __importDefault(require("./plugins.js"));
+const registry_1 = __importDefault(require("@node-red/registry"));
 const util_1 = require("@node-red/util");
 const node_path_1 = __importDefault(require("node:path"));
 const node_fs_1 = __importDefault(require("node:fs"));
@@ -195,54 +195,44 @@ function start() {
                     settings_js_1.persistentSettings.externalModules.autoInstall &&
                         (!settings_js_1.persistentSettings.externalModules.palette || settings_js_1.persistentSettings.externalModules.palette.allowInstall !== false);
             }
-            let i;
-            const nodeErrors = index_js_2.default.getNodeList(function (n) {
-                return n.err !== null;
-            });
-            const nodeMissing = index_js_2.default.getNodeList(function (n) {
-                return n.module && n.enabled && !n.loaded && !n.err;
-            });
+            const nodeErrors = index_js_2.default.getNodeList(({ err }) => !!err);
+            const nodeMissing = index_js_2.default.getNodeList(({ module, enabled, loaded, err }) => module && enabled && !loaded && !err);
             if (nodeErrors.length > 0) {
                 util_1.log.warn('------------------------------------------------------');
-                for (i = 0; i < nodeErrors.length; i += 1) {
-                    if (nodeErrors[i]?.err?.code === 'type_already_registered') {
+                nodeErrors.forEach((nodeError) => {
+                    console.log('N:', nodeError.err);
+                    if (nodeError.err?.code === 'type_already_registered') {
                         util_1.log.warn('[' +
-                            nodeErrors[i].id +
+                            nodeError.id +
                             '] ' +
                             util_1.log._('server.type-already-registered', {
-                                type: nodeErrors[i].err.details.type,
-                                module: nodeErrors[i].err.details.moduleA
+                                type: nodeError.err.details.type,
+                                module: nodeError.err.details.moduleA
                             }));
                     }
                     else {
-                        util_1.log.warn('[' + nodeErrors[i].id + '] ' + nodeErrors[i].err);
+                        util_1.log.warn('[' + nodeError.id + '] ' + nodeError.err);
                     }
-                }
+                });
                 util_1.log.warn('------------------------------------------------------');
             }
             if (nodeMissing.length > 0) {
                 util_1.log.warn(util_1.log._('server.missing-modules'));
                 const missingModules = {};
-                for (i = 0; i < nodeMissing.length; i++) {
-                    const missing = nodeMissing[i];
-                    missingModules[missing.module] = missingModules[missing.module] || {
-                        module: missing.module,
+                const installingModules = [];
+                nodeMissing.forEach((missing) => {
+                    const { module, types } = missing;
+                    missingModules[module] = missingModules[module] || {
+                        module,
                         version: missing.pending_version || missing.version,
                         types: []
                     };
-                    missingModules[missing.module].types = missingModules[missing.module].types.concat(missing.types);
-                }
-                const moduleList = [];
-                const promises = [];
-                const installingModules = [];
-                for (i in missingModules) {
-                    if (missingModules.hasOwnProperty(i)) {
-                        util_1.log.warn(' - ' + i + ' (' + missingModules[i].version + '): ' + missingModules[i].types.join(', '));
-                        if (autoInstallModules && i !== 'node-red') {
-                            installingModules.push({ id: i, version: missingModules[i].version });
-                        }
+                    missingModules[module].types = missingModules[module].types.concat(types);
+                    util_1.log.warn(' - ' + module + ' (' + missingModules[module].version + '): ' + missingModules[module].types.join(', '));
+                    if (autoInstallModules && module !== 'node-red') {
+                        installingModules.push({ id: module, version: missingModules[module].version });
                     }
-                }
+                });
                 if (!autoInstallModules) {
                     util_1.log.info(util_1.log._('server.removing-modules'));
                     index_js_2.default.cleanModuleList();
@@ -268,7 +258,7 @@ function start() {
                     util_1.log.info(util_1.log._('runtime.paths.httpStatic', { path: `${p} > ${r}` }));
                 }
             }
-            return index_js_2.default.loadContextsPlugin().then(function () {
+            return index_js_2.default.loadContextsPlugin().then(() => {
                 index_js_2.default
                     .loadFlows()
                     .then(() => {
@@ -354,9 +344,7 @@ function stop() {
         clearTimeout(reinstallTimeout);
     }
     started = false;
-    return index_js_2.default.stopFlows().then(function () {
-        return index_js_2.default.closeContextsPlugin();
-    });
+    return index_js_2.default.stopFlows().then(() => index_js_2.default.closeContextsPlugin());
 }
 // This is the internal api
 const runtime = {
@@ -368,7 +356,7 @@ const runtime = {
     storage: index_js_4.default,
     hooks: util_1.hooks,
     nodes: index_js_2.default,
-    plugins: plugins_js_1.default,
+    plugins: registry_1.default,
     flows: index_js_3.default,
     library: index_js_5.default,
     exec: util_1.exec,

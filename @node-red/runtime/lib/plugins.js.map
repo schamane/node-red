@@ -1,1 +1,0 @@
-{"version":3,"file":"plugins.js","sourceRoot":"","sources":["../src/plugins.ts"],"names":[],"mappings":";;AAAA,iDAA6C;AAE7C,kBAAe;IACb,IAAI;QACF,EAAE;IACJ,CAAC;IACD,cAAc,EAAE,kBAAO,CAAC,cAAc;IACtC,SAAS,EAAE,kBAAO,CAAC,SAAS;IAC5B,gBAAgB,EAAE,kBAAO,CAAC,gBAAgB;IAC1C,aAAa,EAAE,kBAAO,CAAC,aAAa;IACpC,gBAAgB,EAAE,kBAAO,CAAC,gBAAgB;IAC1C,oBAAoB,EAAE,kBAAO,CAAC,oBAAoB;CACnD,CAAC"}
