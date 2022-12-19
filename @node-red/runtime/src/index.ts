@@ -18,7 +18,7 @@
 
 import { persistentSettings as settings } from './settings.js';
 import plugins from '@node-red/registry';
-import { log, i18n, events, exec, util, hooks } from '@node-red/util';
+import { log, events, exec, util, hooks, i18n } from '@node-red/util';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -343,7 +343,6 @@ function stop() {
 const runtime = {
   version: getVersion,
   log,
-  i18n,
   events,
   settings,
   storage,

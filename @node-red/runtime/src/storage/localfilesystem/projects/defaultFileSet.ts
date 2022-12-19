@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-import { i18n } from '@node-red/util';
+import { t } from 'i18next';
 
 export default {
   'package.json'(project) {
     const thisPackage = {
       name: project.name,
-      description: project.summary || i18n._('storage.localfilesystem.projects.summary'),
+      description: project.summary || t('storage.localfilesystem.projects.summary'),
       version: '0.0.1',
       dependencies: {},
       'node-red': {
@@ -40,7 +39,7 @@ export default {
     if (project.summary) {
       content += project.summary + '\n\n';
     }
-    content += i18n._('storage.localfilesystem.projects.readme');
+    content += t('storage.localfilesystem.projects.readme');
     return content;
   },
   '.gitignore'() {

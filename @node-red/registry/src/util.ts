@@ -19,7 +19,8 @@
 import path from 'node:path';
 import semver from 'semver';
 import url from 'node:url';
-import { events, i18n, log } from '@node-red/util';
+import i18next, { t } from 'i18next';
+import { events, log } from '@node-red/util';
 
 let runtime;
 
@@ -138,7 +139,7 @@ export function createNodeApi(node) {
     if (args[0].indexOf(':') === -1) {
       args[0] = node.namespace + ':' + args[0];
     }
-    return i18n._.apply(null, args);
+    return t(args);
   };
   return red;
 }

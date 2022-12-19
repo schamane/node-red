@@ -214,11 +214,7 @@ declare const _default: {
         };
         nodes: {
             init(_runtime: any): void;
-            getNodeInfo(opts: any): any; /**
-             * Start the Node-RED application.
-             * @return {Promise} - resolves when complete
-             * @memberof node-red
-             */
+            getNodeInfo(opts: any): any;
             getNodeList(opts: any): any;
             getNodeConfig(opts: any): any;
             getNodeConfigs(opts: any): any;
@@ -248,7 +244,15 @@ declare const _default: {
             available(opts: any): boolean;
             listProjects(opts: any): any;
             createProject(opts: any): any;
-            initialiseProject(opts: any): any;
+            initialiseProject(opts: any): any; /**
+             * Stop the Node-RED application.
+             *
+             * Once called, Node-RED should not be restarted until the Node.JS process is
+             * restarted.
+             *
+             * @return {Promise} - resolves when complete
+             * @memberof node-red
+             */
             getActiveProject(opts: any): any;
             setActiveProject(opts: any): any;
             getProject(opts: any): any;
@@ -258,14 +262,13 @@ declare const _default: {
             getBranches(opts: any): any;
             getBranchStatus(opts: any): any;
             setBranch(opts: any): any;
-            /**
-             * Logging utilities
-             * @see @node-red/util_log
-             * @memberof node-red
-             */
             deleteBranch(opts: any): any;
             commit(opts: any): any;
-            getCommit(opts: any): any;
+            getCommit(opts: any): any; /**
+             * General utilities
+             * @see @node-red/util_util
+             * @memberof node-red
+             */
             getCommits(opts: any): any;
             abortMerge(opts: any): any;
             resolveMerge(opts: any): any;
@@ -327,7 +330,6 @@ declare const _default: {
         _: {
             version: () => Promise<any>;
             log: typeof log;
-            i18n: typeof import("@node-red/util/lib/i18n");
             events: import("events");
             settings: {
                 init(settings: any): void;

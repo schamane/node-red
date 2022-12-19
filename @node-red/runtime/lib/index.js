@@ -350,7 +350,6 @@ function stop() {
 const runtime = {
     version: getVersion,
     log: util_1.log,
-    i18n: util_1.i18n,
     events: util_1.events,
     settings: settings_js_1.persistentSettings,
     storage: index_js_4.default,

@@ -1,7 +1,7 @@
 /// <reference types="node" />
 /// <reference types="node" />
 import plugins from '@node-red/registry';
-import { log, i18n, exec, util, hooks } from '@node-red/util';
+import { log, exec, util, hooks } from '@node-red/util';
 /**
  * Initialise the runtime module.
  * @param {Object} settings - the runtime settings object
@@ -225,7 +225,6 @@ declare const _default: {
     _: {
         version: typeof getVersion;
         log: typeof log;
-        i18n: typeof i18n;
         events: import("events");
         settings: {
             init(settings: any): void;

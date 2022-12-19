@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -14,13 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-Object.defineProperty(exports, "__esModule", { value: true });
-const util_1 = require("@node-red/util");
+const i18next_1 = require("i18next");
 exports.default = {
     'package.json'(project) {
         const thisPackage = {
             name: project.name,
-            description: project.summary || util_1.i18n._('storage.localfilesystem.projects.summary'),
+            description: project.summary || (0, i18next_1.t)('storage.localfilesystem.projects.summary'),
             version: '0.0.1',
             dependencies: {},
             'node-red': {
@@ -40,7 +40,7 @@ exports.default = {
         if (project.summary) {
             content += project.summary + '\n\n';
         }
-        content += util_1.i18n._('storage.localfilesystem.projects.readme');
+        content += (0, i18next_1.t)('storage.localfilesystem.projects.readme');
         return content;
     },
     '.gitignore'() {

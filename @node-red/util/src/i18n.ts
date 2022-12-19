@@ -207,16 +207,3 @@ export function availableLanguages(namespace) {
     return resourceMap[namespace].lngs;
   }
 }
-
-/**
- * The underlying i18n library for when direct access is really needed
- */
-export const i = i18next;
-
-/**
- * Perform a message catalog lookup.
- * @name _
- * @function
- * @memberof @node-red/util_i18n
- */
-export const _ = i18next.t;
