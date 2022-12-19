@@ -1,3 +1,6 @@
+"use strict";
+/* eslint-disable no-prototype-builtins */
+/* eslint-disable camelcase */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,214 +16,223 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var Path = require('path');
-var crypto = require('crypto');
-
-var log = require("@node-red/util").log;
-
-var runtime;
-var storageModule;
-var settingsAvailable;
-var sessionsAvailable;
-
-var Mutex = require('async-mutex').Mutex;
-const settingsSaveMutex = new Mutex();
-
-var libraryFlowsCachedResult = null;
-
-function moduleSelector(aSettings) {
-    var toReturn;
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const node_path_1 = __importDefault(require("node:path"));
+const node_crypto_1 = __importDefault(require("node:crypto"));
+const async_mutex_1 = require("async-mutex");
+let runtime;
+let storageModule;
+let settingsAvailable;
+let sessionsAvailable;
+const settingsSaveMutex = new async_mutex_1.Mutex();
+let libraryFlowsCachedResult = null;
+async function moduleSelector(aSettings) {
+    var _a;
     if (aSettings.storageModule) {
-        if (typeof aSettings.storageModule === "string") {
+        let toReturn;
+        if (typeof aSettings.storageModule === 'string') {
             // TODO: allow storage modules to be specified by absolute path
-            toReturn = require("./"+aSettings.storageModule);
-        } else {
+            toReturn = await (_a = './' + aSettings.storageModule, Promise.resolve().then(() => __importStar(require(_a))));
+        }
+        else {
             toReturn = aSettings.storageModule;
         }
-    } else {
-        toReturn = require("./localfilesystem");
+        return toReturn;
     }
-    return toReturn;
+    const { localfilesystem } = await Promise.resolve().then(() => __importStar(require('./localfilesystem')));
+    return localfilesystem;
 }
-
 function is_malicious(path) {
-    return path.indexOf('../') != -1 || path.indexOf('..\\') != -1;
+    return path.indexOf('../') !== -1 || path.indexOf('..\\') !== -1;
 }
-
-var storageModuleInterface = {
-        init: async function(_runtime) {
-            runtime = _runtime;
-            // Any errors thrown by the module will get passed up to the called
-            // as a rejected promise
-            storageModule = moduleSelector(runtime.settings);
-            settingsAvailable = storageModule.hasOwnProperty("getSettings") && storageModule.hasOwnProperty("saveSettings");
-            sessionsAvailable = storageModule.hasOwnProperty("getSessions") && storageModule.hasOwnProperty("saveSessions");
-            if (!!storageModule.projects) {
-                var projectsEnabled = false;
-                if (runtime.settings.hasOwnProperty("editorTheme") && runtime.settings.editorTheme.hasOwnProperty("projects")) {
-                    projectsEnabled = runtime.settings.editorTheme.projects.enabled === true;
-                }
-                if (projectsEnabled) {
-                    storageModuleInterface.projects = storageModule.projects;
-                }
+const storageModuleInterface = {
+    projects: undefined,
+    sshkeys: undefined,
+    async init(_runtime) {
+        runtime = _runtime;
+        // Any errors thrown by the module will get passed up to the called
+        // as a rejected promise
+        storageModule = await moduleSelector(runtime.settings);
+        settingsAvailable = storageModule.hasOwnProperty('getSettings') && storageModule.hasOwnProperty('saveSettings');
+        sessionsAvailable = storageModule.hasOwnProperty('getSessions') && storageModule.hasOwnProperty('saveSessions');
+        if (storageModule.projects) {
+            let projectsEnabled = false;
+            if (runtime.settings.hasOwnProperty('editorTheme') && runtime.settings.editorTheme.hasOwnProperty('projects')) {
+                projectsEnabled = runtime.settings.editorTheme.projects.enabled === true;
             }
-            if (storageModule.sshkeys) {
-                storageModuleInterface.sshkeys = storageModule.sshkeys;
-            }
-            return storageModule.init(runtime.settings,runtime);
-        },
-        getFlows: async function() {
-            return storageModule.getFlows().then(function(flows) {
-                return storageModule.getCredentials().then(function(creds) {
-                    var result = {
-                        flows: flows,
-                        credentials: creds
-                    };
-                    result.rev = crypto.createHash('md5').update(JSON.stringify(result.flows)).digest("hex");
-                    return result;
-                })
-            });
-        },
-        saveFlows: async function(config, user) {
-            var flows = config.flows;
-            var credentials = config.credentials;
-            var credentialSavePromise;
-            if (config.credentialsDirty) {
-                credentialSavePromise = storageModule.saveCredentials(credentials);
-            } else {
-                credentialSavePromise = Promise.resolve();
-            }
-            delete config.credentialsDirty;
-
-            return credentialSavePromise.then(function() {
-                return storageModule.saveFlows(flows, user).then(function() {
-                    return crypto.createHash('md5').update(JSON.stringify(config.flows)).digest("hex");
-                })
-            });
-        },
-        // getCredentials: function() {
-        //     return storageModule.getCredentials();
-        // },
-        saveCredentials: async function(credentials) {
-            return storageModule.saveCredentials(credentials);
-        },
-        getSettings: async function() {
-            if (settingsAvailable) {
-                return storageModule.getSettings();
-            } else {
-                return null
-            }
-        },
-        saveSettings: async function(settings) {
-            if (settingsAvailable) {
-                return settingsSaveMutex.runExclusive(() => storageModule.saveSettings(settings))
-            }
-        },
-        getSessions: async function() {
-            if (sessionsAvailable) {
-                return storageModule.getSessions();
-            } else {
-                return null
-            }
-        },
-        saveSessions: async function(sessions) {
-            if (sessionsAvailable) {
-                return storageModule.saveSessions(sessions);
-            }
-        },
-
-        /* Library Functions */
-
-        getLibraryEntry: async function(type, path) {
-            if (is_malicious(path)) {
-                var err = new Error();
-                err.code = "forbidden";
-                throw err;
-            }
-            return storageModule.getLibraryEntry(type, path);
-        },
-        saveLibraryEntry: async function(type, path, meta, body) {
-            if (is_malicious(path)) {
-                var err = new Error();
-                err.code = "forbidden";
-                throw err;
-            }
-            return storageModule.saveLibraryEntry(type, path, meta, body);
-        },
-
-/* Deprecated functions */
-        getAllFlows: async function() {
-            if (storageModule.hasOwnProperty("getAllFlows")) {
-                return storageModule.getAllFlows();
-            } else {
-                if (libraryFlowsCachedResult) {
-                    return libraryFlowsCachedResult;
-                } else {
-                    return listFlows("/").then(function(result) {
-                        libraryFlowsCachedResult = result;
-                        return result;
-                    });
-                }
-            }
-        },
-        getFlow: function(fn) {
-            if (is_malicious(fn)) {
-                var err = new Error();
-                err.code = "forbidden";
-                throw err;
-            }
-            if (storageModule.hasOwnProperty("getFlow")) {
-                return storageModule.getFlow(fn);
-            } else {
-                return storageModule.getLibraryEntry("flows",fn);
-            }
-
-        },
-        saveFlow: function(fn, data) {
-            if (is_malicious(fn)) {
-                var err = new Error();
-                err.code = "forbidden";
-                throw err;
-            }
-            libraryFlowsCachedResult = null;
-            if (storageModule.hasOwnProperty("saveFlow")) {
-                return storageModule.saveFlow(fn, data);
-            } else {
-                return storageModule.saveLibraryEntry("flows",fn,{},data);
+            if (projectsEnabled) {
+                storageModuleInterface.projects = storageModule.projects;
             }
         }
-/* End deprecated functions */
-
-}
-
-
+        if (storageModule.sshkeys) {
+            storageModuleInterface.sshkeys = storageModule.sshkeys;
+        }
+        return storageModule.init(runtime.settings, runtime);
+    },
+    getFlows() {
+        return storageModule.getFlows().then(function (flows) {
+            return storageModule.getCredentials().then(function (creds) {
+                const result = {
+                    flows,
+                    credentials: creds,
+                    rev: undefined
+                };
+                result.rev = node_crypto_1.default.createHash('md5').update(JSON.stringify(result.flows)).digest('hex');
+                return result;
+            });
+        });
+    },
+    saveFlows(config, user) {
+        const flows = config.flows;
+        const credentials = config.credentials;
+        let credentialSavePromise;
+        if (config.credentialsDirty) {
+            credentialSavePromise = storageModule.saveCredentials(credentials);
+        }
+        else {
+            credentialSavePromise = Promise.resolve();
+        }
+        delete config.credentialsDirty;
+        return credentialSavePromise.then(function () {
+            return storageModule.saveFlows(flows, user).then(function () {
+                return node_crypto_1.default.createHash('md5').update(JSON.stringify(config.flows)).digest('hex');
+            });
+        });
+    },
+    saveCredentials(credentials) {
+        return storageModule.saveCredentials(credentials);
+    },
+    getSettings() {
+        if (settingsAvailable) {
+            return storageModule.getSettings();
+        }
+        return null;
+    },
+    async saveSettings(settings) {
+        if (settingsAvailable) {
+            return settingsSaveMutex.runExclusive(() => storageModule.saveSettings(settings));
+        }
+    },
+    getSessions() {
+        if (sessionsAvailable) {
+            return storageModule.getSessions();
+        }
+        return null;
+    },
+    saveSessions(sessions) {
+        if (sessionsAvailable) {
+            return storageModule.saveSessions(sessions);
+        }
+    },
+    /* Library Functions */
+    getLibraryEntry(type, path) {
+        if (is_malicious(path)) {
+            const err = new Error();
+            err.code = 'forbidden';
+            throw err;
+        }
+        return storageModule.getLibraryEntry(type, path);
+    },
+    saveLibraryEntry(type, path, meta, body) {
+        if (is_malicious(path)) {
+            const err = new Error();
+            err.code = 'forbidden';
+            throw err;
+        }
+        return storageModule.saveLibraryEntry(type, path, meta, body);
+    },
+    /* Deprecated functions */
+    getAllFlows() {
+        if (storageModule.hasOwnProperty('getAllFlows')) {
+            return storageModule.getAllFlows();
+        }
+        else if (libraryFlowsCachedResult) {
+            return libraryFlowsCachedResult;
+        }
+        return listFlows('/').then(function (result) {
+            libraryFlowsCachedResult = result;
+            return result;
+        });
+    },
+    getFlow(fn) {
+        if (is_malicious(fn)) {
+            const err = new Error();
+            err.code = 'forbidden';
+            throw err;
+        }
+        if (storageModule.hasOwnProperty('getFlow')) {
+            return storageModule.getFlow(fn);
+        }
+        return storageModule.getLibraryEntry('flows', fn);
+    },
+    saveFlow(fn, data) {
+        if (is_malicious(fn)) {
+            const err = new Error();
+            err.code = 'forbidden';
+            throw err;
+        }
+        libraryFlowsCachedResult = null;
+        if (storageModule.hasOwnProperty('saveFlow')) {
+            return storageModule.saveFlow(fn, data);
+        }
+        return storageModule.saveLibraryEntry('flows', fn, {}, data);
+    }
+    /* End deprecated functions */
+};
 function listFlows(path) {
-    return storageModule.getLibraryEntry("flows",path).then(function(res) {
+    return storageModule.getLibraryEntry('flows', path).then(function (res) {
         const promises = [];
-        res.forEach(function(r) {
-            if (typeof r === "string") {
-                promises.push(listFlows(Path.join(path,r)));
-            } else {
+        res.forEach(function (r) {
+            if (typeof r === 'string') {
+                promises.push(listFlows(node_path_1.default.join(path, r)));
+            }
+            else {
                 promises.push(Promise.resolve(r));
             }
         });
-        return Promise.all(promises).then(res2 => {
+        return Promise.all(promises).then((res2) => {
             let i = 0;
             const result = {};
-            res2.forEach(function(r) {
+            res2.forEach(function (r) {
                 // TODO: name||fn
                 if (r.fn) {
-                    var name = r.name;
+                    let name = r.name;
                     if (!name) {
-                        name = r.fn.replace(/\.json$/, "");
+                        name = r.fn.replace(/\.json$/, '');
                     }
                     result.f = result.f || [];
                     result.f.push(name);
-                } else {
+                }
+                else {
                     result.d = result.d || {};
                     result.d[res[i]] = r;
-                    //console.log(">",r.value);
+                    // console.log(">",r.value);
                 }
                 i++;
             });
@@ -228,5 +240,5 @@ function listFlows(path) {
         });
     });
 }
-
-module.exports = storageModuleInterface;
+exports.default = storageModuleInterface;
+//# sourceMappingURL=index.js.map

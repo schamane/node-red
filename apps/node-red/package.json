@@ -10,10 +10,15 @@
     },
     "main": "lib/red.js",
     "scripts": {
-        "start": "node -r source-map-support/register red.js",
-        "dev": "nodemon --trace-warnings -r source-map-support/register red.js",
+        "clean": "rimraf lib",
+        "start": "node -r source-map-support/register lib/red.js",
+        "dev": "nodemon --trace-warnings -r source-map-support/register lib/red.js",
         "depcheck": "npx depcheck",
-        "test": "nodemon --help"
+        "test": "nodemon --help",
+        "lint": "eslint --ext .ts ./src",
+        "lint:fix": "eslint --fix --ext .ts ./src",
+        "build": "npm run clean && tsc",
+        "watch": "npm run clean && tsc -w"
     },
     "bin": {
         "node-red": "./red.js",
@@ -41,11 +46,21 @@
         "@node-red/runtime": "3.0.2",
         "@node-red/util": "3.0.2",
         "@node-red/nodes": "3.0.2",
-        "semver": "7.3.7"
+        "semver": "7.3.7",
+        "bcrypt": "^5.1.0",
+        "nopt": "^7.0.0",
+        "fs-extra": "^11.1.0"
     },
     "devDependencies": {
         "nodemon": "^2.0.20",
-        "source-map-support": "^0.5.21"
+        "@types/node": "^18.11.15",
+        "eslint": "^8.29.0",
+        "prettier-eslint": "^15.0.1",
+        "rimraf": "^3.0.2",
+        "source-map-support": "^0.5.21",
+        "eslint-config-custom": "*",
+        "tsconfig": "*",
+        "typescript": "*"
     },
     "nodemonConfig": {
         "ignore": [

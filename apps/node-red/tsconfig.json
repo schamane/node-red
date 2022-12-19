@@ -1,0 +1,18 @@
+{
+  "extends": "tsconfig/base.json",
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "lib",
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "outDir": "lib",
+    "sourceMap": true,
+    "target": "ESNext",
+    "paths": {
+      "@PackageToTest/*": ["./src/*"]
+    }
+  }
+}

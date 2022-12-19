@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,200 +14,201 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var fs = require('fs-extra');
-var fspath = require("path");
-var keygen = require("./keygen");
-
-var settings;
-var log = require("@node-red/util").log;
-var sshkeyDir;
-var userSSHKeyDir;
-
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const node_path_1 = __importDefault(require("node:path"));
+const keygen_js_1 = __importDefault(require("./keygen.js"));
+const util_1 = require("@node-red/util");
+const node_util_1 = require("node:util");
+let settings;
+let sshkeyDir;
+let userSSHKeyDir;
 function init(_settings) {
     settings = _settings;
-    sshkeyDir = fspath.resolve(fspath.join(settings.userDir, "projects", ".sshkeys"));
-    userSSHKeyDir = fspath.join(process.env.HOME || process.env.USERPROFILE || process.env.HOMEPATH, ".ssh");
+    sshkeyDir = node_path_1.default.resolve(node_path_1.default.join(settings.userDir, 'projects', '.sshkeys'));
+    userSSHKeyDir = node_path_1.default.join(process.env.HOME || process.env.USERPROFILE || process.env.HOMEPATH, '.ssh');
     // console.log('sshkeys.init()');
-    return fs.ensureDir(sshkeyDir);
+    return fs_extra_1.default.ensureDir(sshkeyDir);
 }
-
 function listSSHKeys(username) {
-    return listSSHKeysInDir(sshkeyDir,username + '_').then(function(customKeys) {
-        return listSSHKeysInDir(userSSHKeyDir).then(function(existingKeys) {
-            existingKeys.forEach(function(k){
+    return listSSHKeysInDir(sshkeyDir, username + '_').then(function (customKeys) {
+        return listSSHKeysInDir(userSSHKeyDir).then(function (existingKeys) {
+            existingKeys.forEach(function (k) {
                 k.system = true;
                 customKeys.push(k);
-            })
+            });
             return customKeys;
         });
     });
 }
-
-function listSSHKeysInDir(dir,startStr) {
-    startStr = startStr || "";
-    return fs.readdir(dir).then(function(fns) {
-        var ret = fns.sort()
-            .filter(function(fn) {
-                var fullPath = fspath.join(dir,fn);
-                if (fn.length > 2 || fn[0] != ".") {
-                    var stats = fs.lstatSync(fullPath);
-                    if (stats.isFile()) {
-                        return fn.startsWith(startStr);
-                    }
+function listSSHKeysInDir(dir, startStr) {
+    startStr = startStr || '';
+    return fs_extra_1.default
+        .readdir(dir)
+        .then(function (fns) {
+        const ret = fns
+            .sort()
+            .filter(function (fn) {
+            const fullPath = node_path_1.default.join(dir, fn);
+            if (fn.length > 2 || fn[0] !== '.') {
+                const stats = fs_extra_1.default.lstatSync(fullPath);
+                if (stats.isFile()) {
+                    return fn.startsWith(startStr);
                 }
-                return false;
-            })
-            .map(function(filename) {
-                return filename.substr(startStr.length);
-            })
-            .reduce(function(prev, current) {
-                var parsePath = fspath.parse(current);
-                if ( parsePath ) {
-                    if ( parsePath.ext !== '.pub' ) {
-                        // Private Keys
-                        prev.keyFiles.push(parsePath.base);
-                    }
-                    else if ( parsePath.ext === '.pub' && (prev.keyFiles.some(function(elem){ return elem === parsePath.name; }))) {
-                        prev.privateKeyFiles.push(parsePath.name);
-                    }
+            }
+            return false;
+        })
+            .map(function (filename) {
+            return filename.substr(startStr.length);
+        })
+            .reduce(function (prev, current) {
+            const parsePath = node_path_1.default.parse(current);
+            if (parsePath) {
+                if (parsePath.ext !== '.pub') {
+                    // Private Keys
+                    prev.keyFiles.push(parsePath.base);
                 }
-                return prev;
-            }, { keyFiles: [], privateKeyFiles: [] });
-        return ret.privateKeyFiles.map(function(filename) {
+                else if (parsePath.ext === '.pub' &&
+                    prev.keyFiles.some(function (elem) {
+                        return elem === parsePath.name;
+                    })) {
+                    prev.privateKeyFiles.push(parsePath.name);
+                }
+            }
+            return prev;
+        }, { keyFiles: [], privateKeyFiles: [] });
+        return ret.privateKeyFiles.map(function (filename) {
             return {
                 name: filename
             };
         });
-    }).then(function(result) {
+    })
+        .then(function (result) {
         return result;
-    }).catch(function() {
-        return []
+    })
+        .catch(function () {
+        return [];
     });
 }
-
 function getSSHKey(username, name) {
     return checkSSHKeyFileAndGetPublicKeyFileName(username, name)
-    .then(function(publicSSHKeyPath) {
-        return fs.readFile(publicSSHKeyPath, 'utf-8');
-    }).catch(function() {
-        var privateKeyPath = fspath.join(userSSHKeyDir,name);
-        var publicKeyPath = privateKeyPath+".pub";
-        return checkFilePairExist(privateKeyPath,publicKeyPath).then(function() {
-            return fs.readFile(publicKeyPath, 'utf-8');
-        }).catch(function() {
-            return null
+        .then(function (publicSSHKeyPath) {
+        return fs_extra_1.default.readFile(publicSSHKeyPath, 'utf-8');
+    })
+        .catch(function () {
+        const privateKeyPath = node_path_1.default.join(userSSHKeyDir, name);
+        const publicKeyPath = privateKeyPath + '.pub';
+        return checkFilePairExist(privateKeyPath, publicKeyPath)
+            .then(function () {
+            return fs_extra_1.default.readFile(publicKeyPath, 'utf-8');
+        })
+            .catch(function () {
+            return null;
         });
     });
 }
-
 function generateSSHKey(username, options) {
     options = options || {};
-    var name = options.name || "";
+    const name = options.name || '';
     if (!/^[a-zA-Z0-9\-_]+$/.test(options.name)) {
-        var err = new Error("Invalid SSH Key name");
-        e.code = "invalid_key_name";
+        const err = new Error('Invalid SSH Key name');
+        err.code = 'invalid_key_name';
         return Promise.reject(err);
     }
-    return checkExistSSHKeyFiles(username, name)
-        .then(function(result) {
-            if ( result ) {
-                var e = new Error("SSH Key name exists");
-                e.code = "key_exists";
-                throw e;
-            } else {
-                var comment = options.comment || "";
-                var password = options.password || "";
-                var size = options.size || 2048;
-                var sshKeyFileBasename = username + '_' + name;
-                var privateKeyFilePath = fspath.normalize(fspath.join(sshkeyDir, sshKeyFileBasename));
-                return generateSSHKeyPair(name, privateKeyFilePath, comment, password, size)
-            }
-        })
+    return checkExistSSHKeyFiles(username, name).then(function (result) {
+        if (result) {
+            const e = new Error('SSH Key name exists');
+            e.code = 'key_exists';
+            throw e;
+        }
+        else {
+            const comment = options.comment || '';
+            const password = options.password || '';
+            const size = options.size || 2048;
+            const sshKeyFileBasename = username + '_' + name;
+            const privateKeyFilePath = node_path_1.default.normalize(node_path_1.default.join(sshkeyDir, sshKeyFileBasename));
+            return generateSSHKeyPair(name, privateKeyFilePath, comment, password, size);
+        }
+    });
 }
-
 function deleteSSHKey(username, name) {
-    return checkSSHKeyFileAndGetPublicKeyFileName(username, name)
-    .then(function() {
+    return checkSSHKeyFileAndGetPublicKeyFileName(username, name).then(function () {
         return deleteSSHKeyFiles(username, name);
     });
 }
-
 function checkExistSSHKeyFiles(username, name) {
-    var sshKeyFileBasename = username + '_' + name;
-    var privateKeyFilePath = fspath.join(sshkeyDir, sshKeyFileBasename);
-    var publicKeyFilePath  = fspath.join(sshkeyDir, sshKeyFileBasename + '.pub');
-    return checkFilePairExist(privateKeyFilePath,publicKeyFilePath)
-        .then(function() {
-            return true;
-        })
-        .catch(function() {
-            return false;
-        });
+    const sshKeyFileBasename = username + '_' + name;
+    const privateKeyFilePath = node_path_1.default.join(sshkeyDir, sshKeyFileBasename);
+    const publicKeyFilePath = node_path_1.default.join(sshkeyDir, sshKeyFileBasename + '.pub');
+    return checkFilePairExist(privateKeyFilePath, publicKeyFilePath)
+        .then(function () {
+        return true;
+    })
+        .catch(function () {
+        return false;
+    });
 }
-
 function checkSSHKeyFileAndGetPublicKeyFileName(username, name) {
-    var sshKeyFileBasename = username + '_' + name;
-    var privateKeyFilePath = fspath.join(sshkeyDir, sshKeyFileBasename);
-    var publicKeyFilePath  = fspath.join(sshkeyDir, sshKeyFileBasename + '.pub');
-    return checkFilePairExist(privateKeyFilePath,publicKeyFilePath).then(function() {
+    const sshKeyFileBasename = username + '_' + name;
+    const privateKeyFilePath = node_path_1.default.join(sshkeyDir, sshKeyFileBasename);
+    const publicKeyFilePath = node_path_1.default.join(sshkeyDir, sshKeyFileBasename + '.pub');
+    return checkFilePairExist(privateKeyFilePath, publicKeyFilePath).then(function () {
         return publicKeyFilePath;
     });
 }
-
-function checkFilePairExist(privateKeyFilePath,publicKeyFilePath) {
+function checkFilePairExist(privateKeyFilePath, publicKeyFilePath) {
     return Promise.all([
-        fs.access(privateKeyFilePath, (fs.constants || fs).R_OK),
-        fs.access(publicKeyFilePath , (fs.constants || fs).R_OK)
-    ])
+        fs_extra_1.default.access(privateKeyFilePath, (fs_extra_1.default.constants || fs_extra_1.default).R_OK),
+        fs_extra_1.default.access(publicKeyFilePath, (fs_extra_1.default.constants || fs_extra_1.default).R_OK)
+    ]);
 }
-
 function deleteSSHKeyFiles(username, name) {
-    var sshKeyFileBasename = username + '_' + name;
-    var privateKeyFilePath = fspath.join(sshkeyDir, sshKeyFileBasename);
-    var publicKeyFilePath  = fspath.join(sshkeyDir, sshKeyFileBasename + '.pub');
-    return Promise.all([
-        fs.remove(privateKeyFilePath),
-        fs.remove(publicKeyFilePath)
-    ])
+    const sshKeyFileBasename = username + '_' + name;
+    const privateKeyFilePath = node_path_1.default.join(sshkeyDir, sshKeyFileBasename);
+    const publicKeyFilePath = node_path_1.default.join(sshkeyDir, sshKeyFileBasename + '.pub');
+    return Promise.all([fs_extra_1.default.remove(privateKeyFilePath), fs_extra_1.default.remove(publicKeyFilePath)]);
 }
-
 function generateSSHKeyPair(name, privateKeyPath, comment, password, size) {
-    log.trace("ssh-keygen["+[name,privateKeyPath,comment,size,"hasPassword?"+!!password].join(",")+"]");
-    return keygen.generateKey({location: privateKeyPath, comment: comment, password: password, size: size})
-            .then(function(stdout) {
-                return name;
-            })
-            .catch(function(err) {
-                log.log('[SSHKey generation] error:', err);
-                throw err;
-            });
+    util_1.log.trace('ssh-keygen[' + [name, privateKeyPath, comment, size, 'hasPassword?' + !!password].join(',') + ']');
+    return keygen_js_1.default
+        .generateKey({ location: privateKeyPath, comment, password, size })
+        .then(function (stdout) {
+        return name;
+    })
+        .catch(function (err) {
+        util_1.log.log(`[SSHKey generation] error: ${(0, node_util_1.inspect)(err)}`);
+        throw err;
+    });
 }
-
 function getPrivateKeyPath(username, name) {
-    var sshKeyFileBasename = username + '_' + name;
-    var privateKeyFilePath = fspath.normalize(fspath.join(sshkeyDir, sshKeyFileBasename));
+    const sshKeyFileBasename = username + '_' + name;
+    let privateKeyFilePath = node_path_1.default.normalize(node_path_1.default.join(sshkeyDir, sshKeyFileBasename));
     try {
-        fs.accessSync(privateKeyFilePath, (fs.constants || fs).R_OK);
-    } catch(err) {
-        privateKeyFilePath = fspath.join(userSSHKeyDir,name);
+        fs_extra_1.default.accessSync(privateKeyFilePath, (fs_extra_1.default.constants || fs_extra_1.default).R_OK);
+    }
+    catch (err) {
+        privateKeyFilePath = node_path_1.default.join(userSSHKeyDir, name);
         try {
-            fs.accessSync(privateKeyFilePath, (fs.constants || fs).R_OK);
-        } catch(err2) {
+            fs_extra_1.default.accessSync(privateKeyFilePath, (fs_extra_1.default.constants || fs_extra_1.default).R_OK);
+        }
+        catch (err2) {
             return null;
         }
     }
-    if (fspath.sep === '\\') {
-        privateKeyFilePath = privateKeyFilePath.replace(/\\/g,'\\\\');
+    if (node_path_1.default.sep === '\\') {
+        privateKeyFilePath = privateKeyFilePath.replace(/\\/g, '\\\\');
     }
     return privateKeyFilePath;
 }
-
-module.exports = {
-    init: init,
-    listSSHKeys: listSSHKeys,
-    getSSHKey: getSSHKey,
-    getPrivateKeyPath: getPrivateKeyPath,
-    generateSSHKey: generateSSHKey,
-    deleteSSHKey: deleteSSHKey
+exports.default = {
+    init,
+    listSSHKeys,
+    getSSHKey,
+    getPrivateKeyPath,
+    generateSSHKey,
+    deleteSSHKey
 };
+//# sourceMappingURL=index.js.map

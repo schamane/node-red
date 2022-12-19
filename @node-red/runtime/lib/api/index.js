@@ -1,4 +1,5 @@
-/*!
+"use strict";
+/* !
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-
-
-var runtime;
-
-var api = module.exports = {
-    init: function(_runtime) {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const comms_js_1 = __importDefault(require("./comms.js"));
+const flows_js_1 = __importDefault(require("./flows.js"));
+const library_js_1 = __importDefault(require("./library.js"));
+const nodes_js_1 = __importDefault(require("./nodes.js"));
+const settings_js_1 = __importDefault(require("./settings.js"));
+const projects_js_1 = __importDefault(require("./projects.js"));
+const context_js_1 = __importDefault(require("./context.js"));
+const plugins_js_1 = __importDefault(require("./plugins.js"));
+const diagnostics_js_1 = __importDefault(require("./diagnostics.js"));
+let runtime;
+const api = {
+    init(_runtime) {
         runtime = _runtime;
         api.comms.init(runtime);
         api.flows.init(runtime);
@@ -31,21 +41,21 @@ var api = module.exports = {
         api.plugins.init(runtime);
         api.diagnostics.init(runtime);
     },
-
-    comms: require("./comms"),
-    flows: require("./flows"),
-    library: require("./library"),
-    nodes: require("./nodes"),
-    settings: require("./settings"),
-    projects: require("./projects"),
-    context: require("./context"),
-    plugins: require("./plugins"),
-    diagnostics: require("./diagnostics"),
-
-    isStarted: async function(opts) {
+    comms: comms_js_1.default,
+    flows: flows_js_1.default,
+    library: library_js_1.default,
+    nodes: nodes_js_1.default,
+    settings: settings_js_1.default,
+    projects: projects_js_1.default,
+    context: context_js_1.default,
+    plugins: plugins_js_1.default,
+    diagnostics: diagnostics_js_1.default,
+    isStarted() {
         return runtime.isStarted();
     },
-    version: async function(opts) {
+    version() {
         return runtime.version();
     }
-}
+};
+exports.default = api;
+//# sourceMappingURL=index.js.map

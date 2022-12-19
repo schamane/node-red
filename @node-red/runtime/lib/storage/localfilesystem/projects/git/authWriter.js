@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var net = require("net");
-var socket = net.connect(process.argv[2], function() {
-    socket.on('data', function(data) { console.log(data);});
-    socket.on('end', function() {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const node_net_1 = __importDefault(require("node:net"));
+const socket = node_net_1.default.connect(process.argv[2], function () {
+    socket.on('data', function (data) {
+        console.log(data);
     });
-    socket.write((process.argv[3]||"")+"\n", 'utf8');
+    socket.on('end', function () {
+        //
+    });
+    socket.write((process.argv[3] || '') + '\n', 'utf8');
 });
 socket.setEncoding('utf8');
+//# sourceMappingURL=authWriter.js.map

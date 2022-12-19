@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,37 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var child_process = require('child_process');
-
-var sshkeygenCommand = "ssh-keygen";
-
-var log = require("@node-red/util").log;
-
-function runSshKeygenCommand(args,cwd,env) {
-    return new Promise(function(resolve, reject) {
-        var child = child_process.spawn(sshkeygenCommand, args, {cwd: cwd, detached: true, env: env});
-        var stdout = "";
-        var stderr = "";
-
-        child.stdout.on('data', function(data) {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const node_child_process_1 = __importDefault(require("node:child_process"));
+const sshkeygenCommand = 'ssh-keygen';
+function runSshKeygenCommand(args, cwd, env) {
+    return new Promise(function (resolve, reject) {
+        const child = node_child_process_1.default.spawn(sshkeygenCommand, args, { cwd, detached: true, env });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', function (data) {
             stdout += data;
         });
-        child.stderr.on('data', function(data) {
+        child.stderr.on('data', function (data) {
             stderr += data;
         });
-        child.on('close', function(code, signal) {
+        child.on('close', function (code, signal) {
             // console.log(code);
             // console.log(stdout);
             // console.log(stderr);
             if (code !== 0) {
-                var err = new Error(stderr);
+                const err = new Error(stderr);
                 err.stdout = stdout;
                 err.stderr = stderr;
                 if (/short/.test(stderr)) {
-                    err.code = "key_passphrase_too_short";
-                } else if(/Key must at least be 1024 bits/.test(stderr)) {
-                    err.code = "key_length_too_short";
+                    err.code = 'key_passphrase_too_short';
+                }
+                else if (/Key must at least be 1024 bits/.test(stderr)) {
+                    err.code = 'key_length_too_short';
                 }
                 reject(err);
             }
@@ -51,22 +51,21 @@ function runSshKeygenCommand(args,cwd,env) {
                 resolve(stdout);
             }
         });
-        child.on('error', function(err) {
+        child.on('error', function (err) {
             if (/ENOENT/.test(err.toString())) {
-                err.code = "command_not_found";
+                err.code = 'command_not_found';
             }
             reject(err);
         });
     });
 }
-
 function generateKey(options) {
-    var args = ['-q', '-t', 'rsa'];
-    var err;
+    const args = ['-q', '-t', 'rsa'];
+    let err;
     if (options.size) {
         if (options.size < 1024) {
-            err = new Error("key_length_too_short");
-            err.code = "key_length_too_short";
+            err = new Error('key_length_too_short');
+            err.code = 'key_length_too_short';
             throw err;
         }
         args.push('-b', options.size);
@@ -79,18 +78,18 @@ function generateKey(options) {
     }
     if (options.password) {
         if (options.password.length < 5) {
-            err = new Error("key_passphrase_too_short");
-            err.code = "key_passphrase_too_short";
+            err = new Error('key_passphrase_too_short');
+            err.code = 'key_passphrase_too_short';
             throw err;
         }
-        args.push('-N', options.password||'');
-    } else {
+        args.push('-N', options.password || '');
+    }
+    else {
         args.push('-N', '');
     }
-
-    return runSshKeygenCommand(args,__dirname);
+    return runSshKeygenCommand(args, __dirname);
 }
-
-module.exports = {
-    generateKey: generateKey
+exports.default = {
+    generateKey
 };
+//# sourceMappingURL=keygen.js.map

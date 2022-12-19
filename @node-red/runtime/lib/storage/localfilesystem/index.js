@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,77 +14,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var fs = require('fs-extra');
-var fspath = require("path");
-
-var log = require("@node-red/util").log; // TODO: separate module
-
-var util = require("./util");
-var library = require("./library");
-var sessions = require("./sessions");
-var runtimeSettings = require("./settings");
-var projects = require("./projects");
-
-var initialFlowLoadComplete = false;
-var settings;
-
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.localfilesystem = void 0;
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const node_path_1 = __importDefault(require("node:path"));
+const util_js_1 = __importDefault(require("./util.js"));
+const library_js_1 = __importDefault(require("./library.js"));
+const sessions_js_1 = __importDefault(require("./sessions.js"));
+const settings_js_1 = __importDefault(require("./settings.js"));
+const index_js_1 = __importDefault(require("./projects/index.js"));
+const initialFlowLoadComplete = false;
+let settings;
 function checkForConfigFile(dir) {
-    return fs.existsSync(fspath.join(dir,".config.json")) ||
-           fs.existsSync(fspath.join(dir,".config.nodes.json"))
+    return fs_extra_1.default.existsSync(node_path_1.default.join(dir, '.config.json')) || fs_extra_1.default.existsSync(node_path_1.default.join(dir, '.config.nodes.json'));
 }
-
-var localfilesystem = {
-    init: async function(_settings, runtime) {
+exports.localfilesystem = {
+    async init(_settings, runtime) {
         settings = _settings;
-
         if (!settings.userDir) {
             if (checkForConfigFile(process.env.NODE_RED_HOME)) {
-                settings.userDir = process.env.NODE_RED_HOME
-            } else if (process.env.HOMEPATH && checkForConfigFile(fspath.join(process.env.HOMEPATH,".node-red"))) {
-                settings.userDir = fspath.join(process.env.HOMEPATH,".node-red");
-            } else {
-                settings.userDir = fspath.join(process.env.HOME || process.env.USERPROFILE || process.env.HOMEPATH || process.env.NODE_RED_HOME,".node-red");
+                settings.userDir = process.env.NODE_RED_HOME;
+            }
+            else if (process.env.HOMEPATH && checkForConfigFile(node_path_1.default.join(process.env.HOMEPATH, '.node-red'))) {
+                settings.userDir = node_path_1.default.join(process.env.HOMEPATH, '.node-red');
+            }
+            else {
+                settings.userDir = node_path_1.default.join(process.env.HOME || process.env.USERPROFILE || process.env.HOMEPATH || process.env.NODE_RED_HOME, '.node-red');
             }
         }
         if (!settings.readOnly) {
-            await fs.ensureDir(fspath.join(settings.userDir,"node_modules"));
+            await fs_extra_1.default.ensureDir(node_path_1.default.join(settings.userDir, 'node_modules'));
         }
-        sessions.init(settings);
-        await runtimeSettings.init(settings);
-        await library.init(settings);
-        await projects.init(settings, runtime);
-
-        var packageFile = fspath.join(settings.userDir,"package.json");
-
+        sessions_js_1.default.init(settings);
+        await settings_js_1.default.init(settings);
+        await library_js_1.default.init(settings);
+        await index_js_1.default.init(settings, runtime);
+        const packageFile = node_path_1.default.join(settings.userDir, 'package.json');
         if (!settings.readOnly) {
             try {
-                fs.statSync(packageFile);
-            } catch(err) {
-                var defaultPackage = {
-                    "name": "node-red-project",
-                    "description": "A Node-RED Project",
-                    "version": "0.0.1",
-                    "private": true
+                fs_extra_1.default.statSync(packageFile);
+            }
+            catch (err) {
+                const defaultPackage = {
+                    name: 'node-red-project',
+                    description: 'A Node-RED Project',
+                    version: '0.0.1',
+                    private: true
                 };
-                return util.writeFile(packageFile,JSON.stringify(defaultPackage,"",4));
+                return util_js_1.default.writeFile(packageFile, JSON.stringify(defaultPackage, undefined, 4));
             }
         }
     },
-
-
-    getFlows: projects.getFlows,
-    saveFlows: projects.saveFlows,
-    getCredentials: projects.getCredentials,
-    saveCredentials: projects.saveCredentials,
-
-    getSettings: runtimeSettings.getSettings,
-    saveSettings: runtimeSettings.saveSettings,
-    getSessions: sessions.getSessions,
-    saveSessions: sessions.saveSessions,
-    getLibraryEntry: library.getLibraryEntry,
-    saveLibraryEntry: library.saveLibraryEntry,
-    projects: projects
+    getFlows: index_js_1.default.getFlows,
+    saveFlows: index_js_1.default.saveFlows,
+    getCredentials: index_js_1.default.getCredentials,
+    saveCredentials: index_js_1.default.saveCredentials,
+    getSettings: settings_js_1.default.getSettings,
+    saveSettings: settings_js_1.default.saveSettings,
+    getSessions: sessions_js_1.default.getSessions,
+    saveSessions: sessions_js_1.default.saveSessions,
+    getLibraryEntry: library_js_1.default.getLibraryEntry,
+    saveLibraryEntry: library_js_1.default.saveLibraryEntry,
+    projects: index_js_1.default
 };
-
-module.exports = localfilesystem;
+//# sourceMappingURL=index.js.map

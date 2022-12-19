@@ -47,15 +47,15 @@
         "build": "npm run clean && tsc"
     },
     "dependencies": {
-        "i18next": "22.0.2",
+        "i18next": "22.4.5",
         "json-stringify-safe": "5.0.1",
         "jsonata": "1.8.6",
         "lodash.clonedeep": "^4.5.0",
-        "moment-timezone": "0.5.38"
+        "moment-timezone": "0.5.40"
     },
     "devDependencies": {
-        "@types/node": "^18.11.3",
-        "eslint": "^8.26.0",
+        "@types/node": "^18.11.15",
+        "eslint": "^8.29.0",
         "prettier-eslint": "^15.0.1",
         "rimraf": "^3.0.2",
         "source-map-support": "^0.5.21",

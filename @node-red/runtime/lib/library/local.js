@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,27 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var runtime;
-var storage;
-
+Object.defineProperty(exports, "__esModule", { value: true });
+let runtime;
+let storage;
 function init(_runtime) {
     runtime = _runtime;
     storage = runtime.storage;
 }
-
-function getEntry(type,path) {
-    return storage.getLibraryEntry(type,path);
+function getEntry(type, path) {
+    return storage.getLibraryEntry(type, path);
 }
-function saveEntry(type,path,meta,body) {
-    return storage.saveLibraryEntry(type,path,meta,body);
+function saveEntry(type, path, meta, body) {
+    return storage.saveLibraryEntry(type, path, meta, body);
 }
-
-module.exports = {
-    id: "local",
-    label: "editor:library.types.local",
-    icon: "font-awesome/fa-hdd-o",
-    init: init,
-    getEntry: getEntry,
-    saveEntry: saveEntry
-}
+exports.default = {
+    id: 'local',
+    label: 'editor:library.types.local',
+    icon: 'font-awesome/fa-hdd-o',
+    init,
+    getEntry,
+    saveEntry
+};
+//# sourceMappingURL=local.js.map

@@ -1,3 +1,5 @@
+"use strict";
+/* eslint-disable no-prototype-builtins */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,121 +15,142 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var authResponseServer = require('./authServer').ResponseServer;
-var sshResponseServer = require('./authServer').ResponseSSHServer;
-var clone = require('clone');
-var path = require("path");
-
-var gitCommand = "git";
-var gitVersion;
-const {log,exec} = require("@node-red/util");
-
-function runGitCommand(args,cwd,env,emit) {
-    log.trace(gitCommand + JSON.stringify(args));
-    args.unshift("credential.helper=")
-    args.unshift("-c");
-    return exec.run(gitCommand, args, {cwd:cwd, detached:true, env:env}, emit).then(result => {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const authServer_js_1 = require("./authServer.js");
+const clone_1 = __importDefault(require("clone"));
+const node_path_1 = __importDefault(require("node:path"));
+const util_1 = require("@node-red/util");
+const gitCommand = 'git';
+let gitVersion;
+function runGitCommand(args, cwd, env, emit) {
+    util_1.log.trace(gitCommand + JSON.stringify(args));
+    args.unshift('credential.helper=');
+    args.unshift('-c');
+    return util_1.exec
+        .run(gitCommand, args, { cwd, detached: true, env }, emit)
+        .then((result) => {
         return result.stdout;
-    }).catch(result => {
-        var stdout = result.stdout;
-        var stderr = result.stderr;
-        var err = new Error(stderr);
+    })
+        .catch((result) => {
+        const stdout = result.stdout;
+        const stderr = result.stderr;
+        const err = new Error(stderr);
         err.stdout = stdout;
         err.stderr = stderr;
         if (/Connection refused/i.test(stderr)) {
-            err.code = "git_connection_failed";
-        } else if (/Connection timed out/i.test(stderr)) {
-            err.code = "git_connection_failed";
-        } else if(/Host key verification failed/i.test(stderr)) {
+            err.code = 'git_connection_failed';
+        }
+        else if (/Connection timed out/i.test(stderr)) {
+            err.code = 'git_connection_failed';
+        }
+        else if (/Host key verification failed/i.test(stderr)) {
             // TODO: handle host key verification errors separately
-            err.code = "git_host_key_verification_failed";
-        } else if (/fatal: could not read/i.test(stderr)) {
+            err.code = 'git_host_key_verification_failed';
+        }
+        else if (/fatal: could not read/i.test(stderr)) {
             // Username/Password
-            err.code = "git_auth_failed";
-        } else if(/HTTP Basic: Access denied/i.test(stderr)) {
-            err.code = "git_auth_failed";
-        } else if(/Permission denied \(publickey\)/i.test(stderr)) {
-            err.code = "git_auth_failed";
-        } else if(/Authentication failed/i.test(stderr)) {
-            err.code = "git_auth_failed";
-        } else if (/commit your changes or stash/i.test(stderr)) {
-            err.code = "git_local_overwrite";
-        } else if (/CONFLICT/.test(err.stdout)) {
-            err.code = "git_pull_merge_conflict";
-        } else if (/not fully merged/i.test(stderr)) {
-            err.code = "git_delete_branch_unmerged";
-        } else if (/remote .* already exists/i.test(stderr)) {
-            err.code = "git_remote_already_exists";
-        } else if (/does not appear to be a git repository/i.test(stderr)) {
-            err.code = "git_not_a_repository";
-        } else if (/Repository not found/i.test(stderr)) {
-            err.code = "git_repository_not_found";
-        } else if (/repository '.*' does not exist/i.test(stderr)) {
-            err.code = "git_repository_not_found";
-        } else if (/refusing to merge unrelated histories/i.test(stderr)) {
-            err.code = "git_pull_unrelated_history"
-        } else if (/Please tell me who you are/i.test(stderr)) {
-            err.code = "git_missing_user";
-        } else if (/name consists only of disallowed characters/i.test(stderr)) {
-            err.code = "git_missing_user";
+            err.code = 'git_auth_failed';
+        }
+        else if (/HTTP Basic: Access denied/i.test(stderr)) {
+            err.code = 'git_auth_failed';
+        }
+        else if (/Permission denied \(publickey\)/i.test(stderr)) {
+            err.code = 'git_auth_failed';
+        }
+        else if (/Authentication failed/i.test(stderr)) {
+            err.code = 'git_auth_failed';
+        }
+        else if (/commit your changes or stash/i.test(stderr)) {
+            err.code = 'git_local_overwrite';
+        }
+        else if (/CONFLICT/.test(err.stdout)) {
+            err.code = 'git_pull_merge_conflict';
+        }
+        else if (/not fully merged/i.test(stderr)) {
+            err.code = 'git_delete_branch_unmerged';
+        }
+        else if (/remote .* already exists/i.test(stderr)) {
+            err.code = 'git_remote_already_exists';
+        }
+        else if (/does not appear to be a git repository/i.test(stderr)) {
+            err.code = 'git_not_a_repository';
+        }
+        else if (/Repository not found/i.test(stderr)) {
+            err.code = 'git_repository_not_found';
+        }
+        else if (/repository '.*' does not exist/i.test(stderr)) {
+            err.code = 'git_repository_not_found';
+        }
+        else if (/refusing to merge unrelated histories/i.test(stderr)) {
+            err.code = 'git_pull_unrelated_history';
+        }
+        else if (/Please tell me who you are/i.test(stderr)) {
+            err.code = 'git_missing_user';
+        }
+        else if (/name consists only of disallowed characters/i.test(stderr)) {
+            err.code = 'git_missing_user';
         }
         throw err;
-    })
+    });
 }
-function runGitCommandWithAuth(args,cwd,auth,emit) {
-    log.trace("runGitCommandWithAuth "+JSON.stringify(auth).replace(/("pass.*?"\s*:\s*").+?"/g,'$1[hidden]"'));
-    return authResponseServer(auth).then(function(rs) {
-        var commandEnv = clone(process.env);
-        commandEnv.GIT_ASKPASS = path.join(__dirname,"node-red-ask-pass.sh");
+function runGitCommandWithAuth(args, cwd, auth, emit) {
+    util_1.log.trace('runGitCommandWithAuth ' + JSON.stringify(auth).replace(/("pass.*?"\s*:\s*").+?"/g, '$1[hidden]"'));
+    return (0, authServer_js_1.ResponseServer)(auth).then(function (rs) {
+        const commandEnv = (0, clone_1.default)(process.env);
+        commandEnv.GIT_ASKPASS = node_path_1.default.join(__dirname, 'node-red-ask-pass.sh');
         commandEnv.NODE_RED_GIT_NODE_PATH = process.execPath;
         commandEnv.NODE_RED_GIT_SOCK_PATH = rs.path;
-        commandEnv.NODE_RED_GIT_ASKPASS_PATH = path.join(__dirname,"authWriter.js");
-        return runGitCommand(args,cwd,commandEnv,emit).then( result => {
+        commandEnv.NODE_RED_GIT_ASKPASS_PATH = node_path_1.default.join(__dirname, 'authWriter.js');
+        return runGitCommand(args, cwd, commandEnv, emit)
+            .then((result) => {
             rs.close();
             return result;
-        }).catch(err => {
+        })
+            .catch((err) => {
             rs.close();
             throw err;
         });
-    })
+    });
 }
-
-function runGitCommandWithSSHCommand(args,cwd,auth,emit) {
-    log.trace("runGitCommandWithSSHCommand "+JSON.stringify(auth).replace(/("pass.*?"\s*:\s*").+?"/g,'$1[hidden]"'));
-    return sshResponseServer(auth).then(function(rs) {
-        var commandEnv = clone(process.env);
-        commandEnv.SSH_ASKPASS = path.join(__dirname,"node-red-ask-pass.sh");
-        commandEnv.DISPLAY = "dummy:0";
+function runGitCommandWithSSHCommand(args, cwd, auth, emit) {
+    util_1.log.trace('runGitCommandWithSSHCommand ' + JSON.stringify(auth).replace(/("pass.*?"\s*:\s*").+?"/g, '$1[hidden]"'));
+    return (0, authServer_js_1.ResponseSSHServer)(auth).then(function (rs) {
+        const commandEnv = (0, clone_1.default)(process.env);
+        commandEnv.SSH_ASKPASS = node_path_1.default.join(__dirname, 'node-red-ask-pass.sh');
+        commandEnv.DISPLAY = 'dummy:0';
         commandEnv.NODE_RED_GIT_NODE_PATH = process.execPath;
         commandEnv.NODE_RED_GIT_SOCK_PATH = rs.path;
-        commandEnv.NODE_RED_GIT_ASKPASS_PATH = path.join(__dirname,"authWriter.js");
+        commandEnv.NODE_RED_GIT_ASKPASS_PATH = node_path_1.default.join(__dirname, 'authWriter.js');
         // For git < 2.3.0
-        commandEnv.GIT_SSH = path.join(__dirname,"node-red-ssh.sh");
-        commandEnv.NODE_RED_KEY_FILE=auth.key_path;
+        commandEnv.GIT_SSH = node_path_1.default.join(__dirname, 'node-red-ssh.sh');
+        commandEnv.NODE_RED_KEY_FILE = auth.key_path;
         // GIT_SSH_COMMAND - added in git 2.3.0
-        commandEnv.GIT_SSH_COMMAND = "ssh -i " + auth.key_path + " -F /dev/null";
+        commandEnv.GIT_SSH_COMMAND = 'ssh -i ' + auth.key_path + ' -F /dev/null';
         // console.log('commandEnv:', commandEnv);
-        return runGitCommand(args,cwd,commandEnv,emit).then( result => {
+        return runGitCommand(args, cwd, commandEnv, emit)
+            .then((result) => {
             rs.close();
             return result;
-        }).catch(err => {
+        })
+            .catch((err) => {
             rs.close();
             throw err;
         });
-    })
+    });
 }
-
 function cleanFilename(name) {
     if (name[0] !== '"') {
         return name;
     }
-    return name.substring(1,name.length-1);
+    return name.substring(1, name.length - 1);
 }
 function parseFilenames(name) {
-    var re = /([^ "]+|(".*?"))($| -> ([^ ]+|(".*"))$)/;
-    var m = re.exec(name);
-    var result = [];
+    const re = /([^ "]+|(".*?"))($| -> ([^ ]+|(".*"))$)/;
+    const m = re.exec(name);
+    const result = [];
     if (m) {
         result.push(cleanFilename(m[1]));
         if (m[4]) {
@@ -162,53 +185,59 @@ function getStatus(localRepo) {
     // parseFilename('"test with space"');
     // parseFilename('"test with space" -> knownFile.txt');
     // parseFilename('"test with space" -> "un -> knownFile.txt"');
-    var result = {
+    const result = {
         files: {},
         commits: {},
-        branches: {}
-    }
-    return runGitCommand(['rev-list', 'HEAD', '--count'],localRepo).then(function(count) {
+        branches: {},
+        merging: undefined
+    };
+    return runGitCommand(['rev-list', 'HEAD', '--count'], localRepo)
+        .then(function (count) {
         result.commits.total = parseInt(count);
-    }).catch(function(err) {
+    })
+        .catch(function (err) {
         if (/ambiguous argument/i.test(err.message)) {
             result.commits.total = 0;
-        } else {
+        }
+        else {
             throw err;
         }
-    }).then(function() {
-        return runGitCommand(["ls-files","--cached","--others","--exclude-standard"],localRepo).then(function(output) {
-            var lines = output.split("\n");
-            lines.forEach(function(l) {
-                if (l==="") {
+    })
+        .then(function () {
+        return runGitCommand(['ls-files', '--cached', '--others', '--exclude-standard'], localRepo).then(function (output) {
+            const lines = output.split('\n');
+            lines.forEach(function (l) {
+                if (l === '') {
                     return;
                 }
-                var fullName = cleanFilename(l);
+                const fullName = cleanFilename(l);
                 // parseFilename(l);
-                var parts = fullName.split("/");
-                var p = result.files;
-                var name;
-                for (var i = 0;i<parts.length-1;i++) {
-                    var name = parts.slice(0,i+1).join("/")+"/";
+                const parts = fullName.split('/');
+                const p = result.files;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    const name = parts.slice(0, i + 1).join('/') + '/';
                     if (!p.hasOwnProperty(name)) {
                         p[name] = {
-                            type:"d"
-                        }
+                            type: 'd'
+                        };
                     }
                 }
                 result.files[fullName] = {
-                    type: /\/$/.test(fullName)?"d":"f"
-                }
-            })
-            return runGitCommand(["status","--porcelain","-b"],localRepo).then(function(output) {
-                var lines = output.split("\n");
-                var unknownDirs = [];
-                var branchLineRE = /^## (?:(?:No commits yet on )|(?:Initial commit on))?(.+?)(?:$|\.\.\.(.+?)(?:$| \[(?:(?:ahead (\d+)(?:,\s*)?)?(?:behind (\d+))?|(gone))\]))/;
-                lines.forEach(function(line) {
-                    if (line==="") {
+                    type: /\/$/.test(fullName) ? 'd' : 'f'
+                };
+            });
+            return runGitCommand(['status', '--porcelain', '-b'], localRepo).then(function (secondOutput) {
+                const secondLines = secondOutput.split('\n');
+                const unknownDirs = [];
+                const branchLineRE = 
+                // eslint-disable-next-line max-len
+                /^## (?:(?:No commits yet on )|(?:Initial commit on))?(.+?)(?:$|\.\.\.(.+?)(?:$| \[(?:(?:ahead (\d+)(?:,\s*)?)?(?:behind (\d+))?|(gone))\]))/;
+                secondLines.forEach(function (line) {
+                    if (line === '') {
                         return;
                     }
-                    if (line[0] === "#") {
-                        var m = branchLineRE.exec(line);
+                    if (line[0] === '#') {
+                        const m = branchLineRE.exec(line);
                         if (m) {
                             result.branches.local = m[1];
                             if (m[2]) {
@@ -225,231 +254,236 @@ function getStatus(localRepo) {
                             if (m[5] !== undefined) {
                                 result.commits.ahead = result.commits.total;
                                 result.branches.remoteError = {
-                                    code: "git_remote_gone"
-                                }
+                                    code: 'git_remote_gone'
+                                };
                             }
                         }
                         return;
                     }
-                    var status = line.substring(0,2);
-                    var fileName;
-                    var names;
+                    const status = line.substring(0, 2);
+                    let fileName;
+                    let names;
                     if (status !== '??') {
                         names = parseFilenames(line.substring(3));
-                    } else {
+                    }
+                    else {
                         names = [cleanFilename(line.substring(3))];
                     }
                     fileName = names[0];
                     if (names.length > 1) {
                         fileName = names[1];
                     }
-
                     // parseFilename(fileName);
                     if (fileName.charCodeAt(0) === 34) {
-                        fileName = fileName.substring(1,fileName.length-1);
+                        fileName = fileName.substring(1, fileName.length - 1);
                     }
                     if (result.files.hasOwnProperty(fileName)) {
                         result.files[fileName].status = status;
-                    } else {
+                    }
+                    else {
                         result.files[fileName] = {
-                            type: "f",
-                            status: status
+                            type: 'f',
+                            status
                         };
                     }
                     if (names.length > 1) {
                         result.files[fileName].oldName = names[0];
                     }
-                    if (status === "??" && fileName[fileName.length-1] === '/') {
+                    if (status === '??' && fileName[fileName.length - 1] === '/') {
                         unknownDirs.push(fileName);
                     }
-                })
-                var allFilenames = Object.keys(result.files);
-                allFilenames.forEach(function(f) {
-                    var entry = result.files[f];
+                });
+                const allFilenames = Object.keys(result.files);
+                allFilenames.forEach(function (f) {
+                    const entry = result.files[f];
                     if (!entry.hasOwnProperty('status')) {
-                        unknownDirs.forEach(function(uf) {
+                        unknownDirs.forEach(function (uf) {
                             if (f.startsWith(uf)) {
-                                entry.status = "??"
+                                entry.status = '??';
                             }
                         });
                     }
-                })
+                });
                 // console.log(files);
                 return result;
-            })
-        })
-    })
+            });
+        });
+    });
 }
-
-function parseLog(log) {
-    var lines = log.split("\n");
-    var currentCommit = {};
-    var commits = [];
-    lines.forEach(function(l) {
-        if (l === "-----") {
+function parseLog(logMessage) {
+    const lines = logMessage.split('\n');
+    let currentCommit = {};
+    const commits = [];
+    lines.forEach(function (l) {
+        if (l === '-----') {
             commits.push(currentCommit);
-            currentCommit = {}
+            currentCommit = {};
             return;
         }
-        var m = /^(.*?): (.*)$/.exec(l);
+        const m = /^(.*?): (.*)$/.exec(l);
         if (m) {
             // git 2.1.4 (Debian Stable) doesn't support %D for refs - so filter out
             if (m[1] === 'refs' && m[2]) {
                 if (m[2] !== '%D') {
-                    currentCommit[m[1]] = m[2].split(",").map(function(v) { return v.trim() });
-                } else {
+                    currentCommit[m[1]] = m[2].split(',').map(function (v) {
+                        return v.trim();
+                    });
+                }
+                else {
                     currentCommit[m[1]] = [];
                 }
-            } else {
-                if (m[1] === 'parents') {
-                    currentCommit[m[1]] = m[2].split(" ");
-                } else {
-                    currentCommit[m[1]] = m[2];
-                }
+            }
+            else if (m[1] === 'parents') {
+                currentCommit[m[1]] = m[2].split(' ');
+            }
+            else {
+                currentCommit[m[1]] = m[2];
             }
         }
     });
     return commits;
 }
-
 function getRemotes(cwd) {
-    return runGitCommand(['remote','-v'],cwd).then(function(output) {
-        var result;
+    return runGitCommand(['remote', '-v'], cwd).then(function (output) {
+        let result;
         if (output.length > 0) {
             result = {};
-            var remoteRE = /^(.+)\t(.+) \((.+)\)$/gm;
-            var m;
+            const remoteRE = /^(.+)\t(.+) \((.+)\)$/gm;
+            let m;
             while ((m = remoteRE.exec(output)) !== null) {
-                result[m[1]] = result[m[1]]||{};
+                result[m[1]] = result[m[1]] || {};
                 result[m[1]][m[3]] = m[2];
             }
         }
         return result;
-    })
+    });
 }
-
 function getBranches(cwd, remote) {
-    var args = ['branch','-vv','--no-color'];
+    const args = ['branch', '-vv', '--no-color'];
     if (remote) {
         args.push('-r');
     }
-    var branchRE = /^([ \*] )(\S+) +(\S+)(?: \[(\S+?)(?:: (?:ahead (\d+)(?:, )?)?(?:behind (\d+))?)?\])? (.*)$/;
-    return runGitCommand(args,cwd).then(function(output) {
-        var branches = [];
-        var lines = output.split("\n");
-        branches = lines.map(function(l) {
-            var m = branchRE.exec(l);
-            var branch = null;
+    const branchRE = /^([ *] )(\S+) +(\S+)(?: \[(\S+?)(?:: (?:ahead (\d+)(?:, )?)?(?:behind (\d+))?)?\])? (.*)$/;
+    return runGitCommand(args, cwd).then(function (output) {
+        let branches = [];
+        const lines = output.split('\n');
+        branches = lines
+            .map(function (l) {
+            const m = branchRE.exec(l);
+            let branch = null;
             if (m) {
                 branch = {
                     name: m[2],
                     remote: m[4],
                     status: {
-                        ahead: m[5]||0,
-                        behind: m[6]||0,
+                        ahead: m[5] || 0,
+                        behind: m[6] || 0
                     },
                     commit: {
                         sha: m[3],
                         subject: m[7]
                     }
-                }
+                };
                 if (m[1] === '* ') {
                     branch.current = true;
                 }
             }
             return branch;
-        }).filter(function(v) { return !!v && v.commit.sha !== '->' });
-
-        return {branches:branches};
-    })
+        })
+            .filter(function (v) {
+            return !!v && v.commit.sha !== '->';
+        });
+        return { branches };
+    });
 }
-function getBranchStatus(cwd,remoteBranch) {
-    var commands = [
+function getBranchStatus(cwd, remoteBranch) {
+    const commands = [
         // #commits master ahead
-        runGitCommand(['rev-list', 'HEAD','^'+remoteBranch, '--count'],cwd),
+        runGitCommand(['rev-list', 'HEAD', '^' + remoteBranch, '--count'], cwd),
         // #commits master behind
-        runGitCommand(['rev-list', '^HEAD',remoteBranch, '--count'],cwd)
+        runGitCommand(['rev-list', '^HEAD', remoteBranch, '--count'], cwd)
     ];
-    return Promise.all(commands).then(function(results) {
+    return Promise.all(commands).then(function (results) {
         return {
             commits: {
                 ahead: parseInt(results[0]),
                 behind: parseInt(results[1])
             }
-        }
-    })
+        };
+    });
 }
-
-function addRemote(cwd,name,options) {
-    var args = ["remote","add",name,options.url]
-    return runGitCommand(args,cwd);
+function addRemote(cwd, name, options) {
+    const args = ['remote', 'add', name, options.url];
+    return runGitCommand(args, cwd);
 }
-function removeRemote(cwd,name) {
-    var args = ["remote","remove",name];
-    return runGitCommand(args,cwd);
+function removeRemote(cwd, name) {
+    const args = ['remote', 'remove', name];
+    return runGitCommand(args, cwd);
 }
-
-module.exports = {
-    init: function(_settings) {
-        return new Promise(function(resolve,reject) {
+exports.default = {
+    init(_settings) {
+        return new Promise(function (resolve, reject) {
             Promise.all([
-                runGitCommand(["--version"]),
-                runGitCommand(["config","--global","user.name"]).catch(err=>""),
-                runGitCommand(["config","--global","user.email"]).catch(err=>"")
-            ]).then(function(output) {
-                var m = / (\d\S+)/.exec(output[0]);
+                runGitCommand(['--version']),
+                runGitCommand(['config', '--global', 'user.name']).catch((err) => ''),
+                runGitCommand(['config', '--global', 'user.email']).catch((err) => '')
+            ])
+                .then(function (output) {
+                const m = / (\d\S+)/.exec(output[0]);
                 gitVersion = m[1];
-                var globalUserName = output[1].trim();
-                var globalUserEmail = output[2].trim();
-                var result = {
+                const globalUserName = output[1].trim();
+                const globalUserEmail = output[2].trim();
+                const result = {
                     version: gitVersion
                 };
                 if (globalUserName && globalUserEmail) {
                     result.user = {
                         name: globalUserName,
                         email: globalUserEmail
-                    }
+                    };
                 }
-                log.trace("git init: "+JSON.stringify(result));
+                util_1.log.trace('git init: ' + JSON.stringify(result));
                 resolve(result);
-            }).catch(function(err) {
-                log.trace("git init: git not found");
+            })
+                .catch(function (err) {
+                util_1.log.trace('git init: git not found');
                 resolve(null);
             });
         });
     },
-    initRepo: function(cwd) {
-        return runGitCommand(["init"],cwd);
+    initRepo(cwd) {
+        return runGitCommand(['init'], cwd);
     },
-    setUpstream: function(cwd,remoteBranch) {
-        var args = ["branch","--set-upstream-to",remoteBranch];
-        return runGitCommand(args,cwd);
+    setUpstream(cwd, remoteBranch) {
+        const args = ['branch', '--set-upstream-to', remoteBranch];
+        return runGitCommand(args, cwd);
     },
-    pull: function(cwd,remote,branch,allowUnrelatedHistories,auth,gitUser) {
-        var args = ["pull"];
+    pull(cwd, remote, branch, allowUnrelatedHistories, auth, gitUser) {
+        const args = ['pull'];
         if (remote && branch) {
             args.push(remote);
             args.push(branch);
         }
-        if (gitUser && gitUser['name'] && gitUser['email']) {
-            args.unshift('user.name="'+gitUser['name']+'"');
+        if (gitUser && gitUser.name && gitUser.email) {
+            args.unshift('user.name="' + gitUser.name + '"');
             args.unshift('-c');
-            args.unshift('user.email="'+gitUser['email']+'"');
+            args.unshift('user.email="' + gitUser.email + '"');
             args.unshift('-c');
         }
         if (allowUnrelatedHistories) {
-            args.push("--allow-unrelated-histories");
+            args.push('--allow-unrelated-histories');
         }
-        var promise;
+        let promise;
         if (auth) {
-            if ( auth.key_path ) {
-                promise = runGitCommandWithSSHCommand(args,cwd,auth,true);
+            if (auth.key_path) {
+                promise = runGitCommandWithSSHCommand(args, cwd, auth, true);
             }
             else {
-                promise = runGitCommandWithAuth(args,cwd,auth,true);
+                promise = runGitCommandWithAuth(args, cwd, auth, true);
             }
-        } else {
-            promise = runGitCommand(args,cwd,undefined,true)
+        }
+        else {
+            promise = runGitCommand(args, cwd, undefined, true);
         }
         return promise;
         // .catch(function(err) {
@@ -465,191 +499,189 @@ module.exports = {
         //     throw err;
         // });
     },
-    push: function(cwd,remote,branch,setUpstream, auth) {
-        var args = ["push"];
+    push(cwd, remote, branch, setUpstream, auth) {
+        const args = ['push'];
         if (branch) {
             if (setUpstream) {
-                args.push("-u");
+                args.push('-u');
             }
             args.push(remote);
-            args.push("HEAD:"+branch);
-        } else {
+            args.push('HEAD:' + branch);
+        }
+        else {
             args.push(remote);
         }
-        args.push("--porcelain");
-        var promise;
+        args.push('--porcelain');
+        let promise;
         if (auth) {
-            if ( auth.key_path ) {
-                promise = runGitCommandWithSSHCommand(args,cwd,auth,true);
+            if (auth.key_path) {
+                promise = runGitCommandWithSSHCommand(args, cwd, auth, true);
             }
             else {
-                promise = runGitCommandWithAuth(args,cwd,auth,true);
+                promise = runGitCommandWithAuth(args, cwd, auth, true);
             }
-        } else {
-            promise = runGitCommand(args,cwd,undefined,true)
         }
-        return promise.catch(function(err) {
+        else {
+            promise = runGitCommand(args, cwd, undefined, true);
+        }
+        return promise.catch(function (err) {
             if (err.code === 'git_error') {
                 if (/^!.*non-fast-forward/m.test(err.stdout)) {
                     err.code = 'git_push_failed';
                 }
                 throw err;
-            } else {
+            }
+            else {
                 throw err;
             }
         });
     },
-    clone: function(remote, auth, cwd) {
-        var args = ["clone",remote.url];
+    clone(remote, auth, cwd) {
+        const args = ['clone', remote.url];
         if (remote.name) {
-            args.push("-o");
+            args.push('-o');
             args.push(remote.name);
         }
         if (remote.branch) {
-            args.push("-b");
+            args.push('-b');
             args.push(remote.branch);
         }
-        args.push(".");
+        args.push('.');
         if (auth) {
-            if ( auth.key_path ) {
-                return runGitCommandWithSSHCommand(args,cwd,auth,true);
+            if (auth.key_path) {
+                return runGitCommandWithSSHCommand(args, cwd, auth, true);
             }
-            else {
-                return runGitCommandWithAuth(args,cwd,auth,true);
-            }
-        } else {
-            return runGitCommand(args,cwd,undefined,true);
+            return runGitCommandWithAuth(args, cwd, auth, true);
         }
+        return runGitCommand(args, cwd, undefined, true);
     },
-    getStatus: getStatus,
-    getFile: function(cwd, filePath, treeish) {
-        var args = ["show",treeish+":"+filePath];
-        return runGitCommand(args,cwd);
+    getStatus,
+    getFile(cwd, filePath, treeish) {
+        const args = ['show', treeish + ':' + filePath];
+        return runGitCommand(args, cwd);
     },
-    getFiles: function(cwd) {
-        return getStatus(cwd).then(function(status) {
+    getFiles(cwd) {
+        return getStatus(cwd).then(function (status) {
             return status.files;
-        })
+        });
     },
-    revertFile: function(cwd, filePath) {
-        var args = ["checkout",filePath];
-        return runGitCommand(args,cwd);
+    revertFile(cwd, filePath) {
+        const args = ['checkout', filePath];
+        return runGitCommand(args, cwd);
     },
-    stageFile: function(cwd,file) {
-        var args = ["add"];
+    stageFile(cwd, file) {
+        let args = ['add'];
         if (Array.isArray(file)) {
             args = args.concat(file);
-        } else {
+        }
+        else {
             args.push(file);
         }
-        return runGitCommand(args,cwd);
+        return runGitCommand(args, cwd);
     },
-    unstageFile: function(cwd, file) {
-        var args = ["reset","--"];
+    unstageFile(cwd, file) {
+        const args = ['reset', '--'];
         if (file) {
             args.push(file);
         }
-        return runGitCommand(args,cwd);
+        return runGitCommand(args, cwd);
     },
-    commit: function(cwd, message, gitUser) {
-        var args = ["commit","-m",message];
-        var env;
-        if (gitUser && gitUser['name'] && gitUser['email']) {
-            args.unshift('user.name="'+gitUser['name']+'"');
+    commit(cwd, message, gitUser) {
+        const args = ['commit', '-m', message];
+        let env;
+        if (gitUser && gitUser.name && gitUser.email) {
+            args.unshift('user.name="' + gitUser.name + '"');
             args.unshift('-c');
-            args.unshift('user.email="'+gitUser['email']+'"');
+            args.unshift('user.email="' + gitUser.email + '"');
             args.unshift('-c');
         }
-        return runGitCommand(args,cwd,env);
+        return runGitCommand(args, cwd, env);
     },
-    getFileDiff(cwd,file,type) {
-        var args = ["diff","-w"];
-        if (type === "tree") {
+    getFileDiff(cwd, file, type) {
+        const args = ['diff', '-w'];
+        if (type === 'tree') {
             // nothing else to do
-        } else if (type === "index") {
-            args.push("--cached");
+        }
+        else if (type === 'index') {
+            args.push('--cached');
         }
         args.push(file);
-        return runGitCommand(args,cwd);
+        return runGitCommand(args, cwd);
     },
-    fetch: function(cwd,remote,auth) {
-        var args = ["fetch",remote];
+    fetch(cwd, remote, auth) {
+        const args = ['fetch', remote];
         if (auth) {
-            if ( auth.key_path ) {
-                return runGitCommandWithSSHCommand(args,cwd,auth);
+            if (auth.key_path) {
+                return runGitCommandWithSSHCommand(args, cwd, auth);
             }
-            else {
-                return runGitCommandWithAuth(args,cwd,auth);
-            }
-        } else {
-            return runGitCommand(args,cwd);
+            return runGitCommandWithAuth(args, cwd, auth);
         }
+        return runGitCommand(args, cwd);
     },
-    getCommits: function(cwd,options) {
-        var args = ["log", "--format=sha: %H%nparents: %p%nrefs: %D%nauthor: %an%ndate: %ct%nsubject: %s%n-----"];
-        var limit = parseInt(options.limit) || 20;
-        args.push("-n "+limit);
-        var before = options.before;
+    getCommits(cwd, options) {
+        const args = ['log', '--format=sha: %H%nparents: %p%nrefs: %D%nauthor: %an%ndate: %ct%nsubject: %s%n-----'];
+        const limit = parseInt(options.limit) || 20;
+        args.push('-n ' + limit);
+        const before = options.before;
         if (before) {
             args.push(before);
         }
-        var commands = [
-            runGitCommand(['rev-list', 'HEAD', '--count'],cwd),
-            runGitCommand(args,cwd).then(parseLog)
-        ];
-        return Promise.all(commands).then(function(results) {
-            var result = results[0];
+        const commands = [runGitCommand(['rev-list', 'HEAD', '--count'], cwd), runGitCommand(args, cwd).then(parseLog)];
+        return Promise.all(commands).then(function (results) {
+            const result = results[0];
             result.count = results[1].length;
             result.before = before;
             result.commits = results[1];
             return {
                 count: results[1].length,
                 commits: results[1],
-                before: before,
+                before,
                 total: parseInt(results[0])
             };
-        })
+        });
     },
-    getCommit: function(cwd,sha) {
-        var args = ["show",sha];
-        return runGitCommand(args,cwd);
+    getCommit(cwd, sha) {
+        const args = ['show', sha];
+        return runGitCommand(args, cwd);
     },
-    abortMerge: function(cwd) {
-        return runGitCommand(['merge','--abort'],cwd);
+    abortMerge(cwd) {
+        return runGitCommand(['merge', '--abort'], cwd);
     },
-    getRemotes: getRemotes,
-    getRemoteBranch: function(cwd) {
-        return runGitCommand(['rev-parse','--abbrev-ref','--symbolic-full-name','@{u}'],cwd).catch(function(err) {
+    getRemotes,
+    getRemoteBranch(cwd) {
+        return runGitCommand(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], cwd).catch(function (err) {
             if (/no upstream configured for branch/i.test(err.message)) {
                 return null;
             }
             throw err;
-        })
+        });
     },
-    getBranches: getBranches,
+    getBranches,
     // getBranchInfo: getBranchInfo,
-    checkoutBranch: function(cwd, branchName, isCreate) {
-        var args = ['checkout'];
+    checkoutBranch(cwd, branchName, isCreate) {
+        const args = ['checkout'];
         if (isCreate) {
             args.push('-b');
         }
         args.push(branchName);
-        return runGitCommand(args,cwd);
+        return runGitCommand(args, cwd);
     },
-    deleteBranch: function(cwd, branchName, isRemote, force) {
+    deleteBranch(cwd, branchName, isRemote, force) {
         if (isRemote) {
-            throw new Error("Deleting remote branches not supported");
+            throw new Error('Deleting remote branches not supported');
         }
-        var args = ['branch'];
+        const args = ['branch'];
         if (force) {
             args.push('-D');
-        } else {
+        }
+        else {
             args.push('-d');
         }
         args.push(branchName);
         return runGitCommand(args, cwd);
     },
-    getBranchStatus: getBranchStatus,
-    addRemote: addRemote,
-    removeRemote: removeRemote
-}
+    getBranchStatus,
+    addRemote,
+    removeRemote
+};
+//# sourceMappingURL=index.js.map

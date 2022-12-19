@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,40 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var fs = require('fs-extra');
-var fspath = require("path");
-
-var log = require("@node-red/util").log; // TODO: separate module
-
-var util = require("./util");
-
-var sessionsFile;
-var settings;
-
-module.exports = {
-    init: function(_settings) {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const node_path_1 = __importDefault(require("node:path"));
+const util_1 = require("@node-red/util");
+const util_js_1 = __importDefault(require("./util.js"));
+let sessionsFile;
+let settings;
+exports.default = {
+    init(_settings) {
         settings = _settings;
-        sessionsFile = fspath.join(settings.userDir,".sessions.json");
+        sessionsFile = node_path_1.default.join(settings.userDir, '.sessions.json');
     },
-    getSessions: async function() {
-        return new Promise(function(resolve,reject) {
-            fs.readFile(sessionsFile,'utf8',function(err,data){
+    async getSessions() {
+        return new Promise(function (resolve, reject) {
+            fs_extra_1.default.readFile(sessionsFile, 'utf8', function (err, data) {
                 if (!err) {
                     try {
-                        return resolve(util.parseJSON(data));
-                    } catch(err2) {
-                        log.trace("Corrupted sessions file - resetting");
+                        return resolve(util_js_1.default.parseJSON(data));
+                    }
+                    catch (err2) {
+                        util_1.log.trace('Corrupted sessions file - resetting');
                     }
                 }
                 resolve({});
-            })
+            });
         });
     },
-    saveSessions: async function(sessions) {
+    saveSessions(sessions) {
         if (settings.readOnly) {
             return;
         }
-        return util.writeFile(sessionsFile,JSON.stringify(sessions));
+        return util_js_1.default.writeFile(sessionsFile, JSON.stringify(sessions));
     }
-}
+};
+//# sourceMappingURL=sessions.js.map

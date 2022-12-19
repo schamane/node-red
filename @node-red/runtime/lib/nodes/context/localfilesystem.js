@@ -1,3 +1,9 @@
+"use strict";
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/no-this-alias */
+/* eslint-disable consistent-this */
+/* eslint-disable no-prototype-builtins */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,7 +19,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Local file-system based context storage
  *
@@ -44,379 +53,406 @@
  *         ├── <id of Node x>.json
  *         └── <id of Node y>.json
  */
-
-var fs = require('fs-extra');
-var path = require("path");
-var util = require("@node-red/util").util;
-var log = require("@node-red/util").log;
-
-var safeJSONStringify = require("json-stringify-safe");
-var MemoryStore = require("./memory");
-
-
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const node_path_1 = __importDefault(require("node:path"));
+const util_1 = require("@node-red/util");
+const json_stringify_safe_1 = __importDefault(require("json-stringify-safe"));
+const memory_js_1 = __importDefault(require("./memory.js"));
 function getStoragePath(storageBaseDir, scope) {
-    if(scope.indexOf(":") === -1){
-        if(scope === "global"){
-            return path.join(storageBaseDir,"global",scope);
-        }else{ // scope:flow
-            return path.join(storageBaseDir,scope,"flow");
-        }
-    }else{ // scope:local
-        var ids = scope.split(":")
-        return path.join(storageBaseDir,ids[1],ids[0]);
-    }
+    if (scope.indexOf(':') === -1) {
+        if (scope === 'global') {
+            return node_path_1.default.join(storageBaseDir, 'global', scope);
+        } // scope:flow
+        return node_path_1.default.join(storageBaseDir, scope, 'flow');
+    } // scope:local
+    const ids = scope.split(':');
+    return node_path_1.default.join(storageBaseDir, ids[1], ids[0]);
 }
-
 function getBasePath(config) {
-    var base = config.base || "context";
-    var storageBaseDir;
+    const base = config.base || 'context';
+    let storageBaseDir;
     if (!config.dir) {
-        if(config.settings && config.settings.userDir){
-            storageBaseDir = path.join(config.settings.userDir, base);
-        }else{
+        if (config.settings && config.settings.userDir) {
+            storageBaseDir = node_path_1.default.join(config.settings.userDir, base);
+        }
+        else {
             try {
-                fs.statSync(path.join(process.env.NODE_RED_HOME,".config.json"));
-                storageBaseDir = path.join(process.env.NODE_RED_HOME, base);
-            } catch(err) {
+                fs_extra_1.default.statSync(node_path_1.default.join(process.env.NODE_RED_HOME, '.config.json'));
+                storageBaseDir = node_path_1.default.join(process.env.NODE_RED_HOME, base);
+            }
+            catch (err) {
                 try {
                     // Consider compatibility for older versions
                     if (process.env.HOMEPATH) {
-                        fs.statSync(path.join(process.env.HOMEPATH,".node-red",".config.json"));
-                        storageBaseDir = path.join(process.env.HOMEPATH, ".node-red", base);
+                        fs_extra_1.default.statSync(node_path_1.default.join(process.env.HOMEPATH, '.node-red', '.config.json'));
+                        storageBaseDir = node_path_1.default.join(process.env.HOMEPATH, '.node-red', base);
                     }
-                } catch(err) {
+                }
+                catch {
+                    //
                 }
                 if (!storageBaseDir) {
-                    storageBaseDir = path.join(process.env.HOME || process.env.USERPROFILE || process.env.HOMEPATH || process.env.NODE_RED_HOME,".node-red", base);
+                    storageBaseDir = node_path_1.default.join(process.env.HOME || process.env.USERPROFILE || process.env.HOMEPATH || process.env.NODE_RED_HOME, '.node-red', base);
                 }
             }
         }
-    }else{
-        storageBaseDir = path.join(config.dir, base);
+    }
+    else {
+        storageBaseDir = node_path_1.default.join(config.dir, base);
     }
     return storageBaseDir;
 }
-
-function loadFile(storagePath){
-    return fs.pathExists(storagePath).then(function(exists){
-        if(exists === true){
-            return fs.readFile(storagePath, "utf8");
-        }else{
-            return Promise.resolve(undefined);
+function loadFile(storagePath) {
+    return fs_extra_1.default.pathExists(storagePath).then(function (exists) {
+        if (exists === true) {
+            return fs_extra_1.default.readFile(storagePath, 'utf8');
         }
+        return Promise.resolve(undefined);
     });
 }
-
 function listFiles(storagePath) {
-    var promises = [];
-    return fs.readdir(storagePath).then(function(files) {
-        files.forEach(function(file) {
+    const promises = [];
+    return fs_extra_1.default
+        .readdir(storagePath)
+        .then(function (files) {
+        files.forEach(function (file) {
             if (!/^\./.test(file)) {
-                var fullPath = path.join(storagePath,file);
-                var stats = fs.statSync(fullPath);
+                const fullPath = node_path_1.default.join(storagePath, file);
+                const stats = fs_extra_1.default.statSync(fullPath);
                 if (stats.isDirectory()) {
-                    promises.push(fs.readdir(fullPath).then(function(subdirFiles) {
-                        var result = [];
-                        subdirFiles.forEach(subfile => {
+                    promises.push(fs_extra_1.default.readdir(fullPath).then(function (subdirFiles) {
+                        const result = [];
+                        subdirFiles.forEach((subfile) => {
                             if (/\.json$/.test(subfile)) {
-                                result.push(path.join(file,subfile))
+                                result.push(node_path_1.default.join(file, subfile));
                             }
                         });
                         return result;
-                    }))
+                    }));
                 }
             }
         });
         return Promise.all(promises);
-    }).then(dirs => dirs.reduce((acc, val) => acc.concat(val), []));
+    })
+        .then((dirs) => dirs.reduce((acc, val) => acc.concat(val), []));
 }
-
 function stringify(value) {
-    var hasCircular;
-    var result = safeJSONStringify(value,null,4,function(k,v){hasCircular = true})
+    let hasCircular;
+    const result = (0, json_stringify_safe_1.default)(value, null, 4, function (k, v) {
+        hasCircular = true;
+    });
     return { json: result, circular: hasCircular };
 }
-
 async function writeFileAtomic(storagePath, content) {
     // To protect against file corruption, write to a tmp file first and then
     // rename to the destination file
-    let finalFile = storagePath + ".json";
-    let tmpFile = finalFile + "."+Date.now()+".tmp";
-    await fs.outputFile(tmpFile, content, "utf8");
-    return fs.rename(tmpFile,finalFile);
+    const finalFile = storagePath + '.json';
+    const tmpFile = finalFile + '.' + Date.now() + '.tmp';
+    await fs_extra_1.default.outputFile(tmpFile, content, 'utf8');
+    return fs_extra_1.default.rename(tmpFile, finalFile);
 }
-
-function LocalFileSystem(config){
+function LocalFileSystem(config) {
     this.config = config;
     this.storageBaseDir = getBasePath(this.config);
     this.writePromise = Promise.resolve();
-    if (config.hasOwnProperty('cache')?config.cache:true) {
-        this.cache = MemoryStore({});
+    if (config.hasOwnProperty('cache') ? config.cache : true) {
+        this.cache = (0, memory_js_1.default)();
     }
     this.pendingWrites = {};
     this.knownCircularRefs = {};
-
     if (config.hasOwnProperty('flushInterval')) {
-        this.flushInterval = Math.max(0,config.flushInterval) * 1000;
-    } else {
+        this.flushInterval = Math.max(0, config.flushInterval) * 1000;
+    }
+    else {
         this.flushInterval = 30000;
     }
 }
-
-LocalFileSystem.prototype.open = function(){
-    var self = this;
+LocalFileSystem.prototype.open = function () {
+    const self = this;
     if (this.cache) {
-        var scopes = [];
-        var promises = [];
-        var contextFiles = [];
-        return listFiles(self.storageBaseDir).then(function(files) {
-            files.forEach(function(file) {
-                var parts = file.split(path.sep);
+        const scopes = [];
+        const promises = [];
+        const contextFiles = [];
+        return listFiles(self.storageBaseDir)
+            .then(function (files) {
+            files.forEach(function (file) {
+                const parts = file.split(node_path_1.default.sep);
                 if (parts[0] === 'global') {
-                    scopes.push("global");
-                } else if (parts[1] === 'flow.json') {
-                    scopes.push(parts[0])
-                } else {
-                    scopes.push(parts[1].substring(0,parts[1].length-5)+":"+parts[0]);
+                    scopes.push('global');
                 }
-                let contextFile = path.join(self.storageBaseDir,file);
-                contextFiles.push(contextFile)
+                else if (parts[1] === 'flow.json') {
+                    scopes.push(parts[0]);
+                }
+                else {
+                    scopes.push(parts[1].substring(0, parts[1].length - 5) + ':' + parts[0]);
+                }
+                const contextFile = node_path_1.default.join(self.storageBaseDir, file);
+                contextFiles.push(contextFile);
                 promises.push(loadFile(contextFile));
-            })
+            });
             return Promise.all(promises);
-        }).then(function(res) {
-            scopes.forEach(function(scope,i) {
+        })
+            .then(function (res) {
+            scopes.forEach(function (scope, i) {
                 try {
-                    var data = res[i]?JSON.parse(res[i]):{};
-                    Object.keys(data).forEach(function(key) {
-                        self.cache.set(scope,key,data[key]);
-                    })
-                } catch(err) {
-                    let error = new Error(log._("context.localfilesystem.invalid-json",{file: contextFiles[i]}))
+                    const data = res[i] ? JSON.parse(res[i]) : {};
+                    Object.keys(data).forEach(function (key) {
+                        self.cache.set(scope, key, data[key]);
+                    });
+                }
+                catch (err) {
+                    const error = new Error(util_1.log._('context.localfilesystem.invalid-json', { file: contextFiles[i] }));
                     throw error;
                 }
             });
-        }).catch(function(err){
-            if(err.code == 'ENOENT') {
-                return fs.ensureDir(self.storageBaseDir);
-            }else{
-                throw err;
+        })
+            .catch(function (err) {
+            if (err.code === 'ENOENT') {
+                return fs_extra_1.default.ensureDir(self.storageBaseDir);
             }
-        }).then(function() {
-            self._flushPendingWrites = function() {
-                var scopes = Object.keys(self.pendingWrites);
+            throw err;
+        })
+            .then(function () {
+            // eslint-disable-next-line no-underscore-dangle
+            self._flushPendingWrites = function () {
+                const scopes = Object.keys(self.pendingWrites);
                 self.pendingWrites = {};
-                var promises = [];
-                var newContext = self.cache._export();
-                scopes.forEach(function(scope) {
-                    var storagePath = getStoragePath(self.storageBaseDir,scope);
-                    var context = newContext[scope] || {};
-                    var stringifiedContext = stringify(context);
+                const promises = [];
+                // eslint-disable-next-line no-underscore-dangle
+                const newContext = self.cache._export();
+                scopes.forEach(function (scope) {
+                    const storagePath = getStoragePath(self.storageBaseDir, scope);
+                    const context = newContext[scope] || {};
+                    const stringifiedContext = stringify(context);
                     if (stringifiedContext.circular && !self.knownCircularRefs[scope]) {
-                        log.warn(log._("context.localfilesystem.error-circular",{scope:scope}));
+                        util_1.log.warn(util_1.log._('context.localfilesystem.error-circular', { scope }));
                         self.knownCircularRefs[scope] = true;
-                    } else {
+                    }
+                    else {
                         delete self.knownCircularRefs[scope];
                     }
-                    log.debug("Flushing localfilesystem context scope "+scope);
-                    promises.push(writeFileAtomic(storagePath, stringifiedContext.json))
+                    util_1.log.debug('Flushing localfilesystem context scope ' + scope);
+                    promises.push(writeFileAtomic(storagePath, stringifiedContext.json));
                 });
+                // eslint-disable-next-line no-underscore-dangle
                 delete self._pendingWriteTimeout;
                 return Promise.all(promises);
-            }
+            };
         });
-    } else {
-        self._flushPendingWrites = function() { }
-        return fs.ensureDir(self.storageBaseDir);
     }
-}
-
-LocalFileSystem.prototype.close = function(){
-    var self = this;
+    // eslint-disable-next-line no-underscore-dangle
+    self._flushPendingWrites = function () {
+        //
+    };
+    return fs_extra_1.default.ensureDir(self.storageBaseDir);
+};
+LocalFileSystem.prototype.close = function () {
+    const self = this;
     if (this.cache && this._pendingWriteTimeout) {
         clearTimeout(this._pendingWriteTimeout);
         delete this._pendingWriteTimeout;
         this.flushInterval = 0;
-        self.writePromise = self.writePromise.then(function(){
-            return self._flushPendingWrites.call(self).catch(function(err) {
-                log.error(log._("context.localfilesystem.error-write",{message:err.toString()}));
+        self.writePromise = self.writePromise.then(function () {
+            return self._flushPendingWrites().catch(function (err) {
+                util_1.log.error(util_1.log._('context.localfilesystem.error-write', { message: err.toString() }));
             });
         });
-
     }
     return this.writePromise;
-}
-
-LocalFileSystem.prototype.get = function(scope, key, callback) {
+};
+LocalFileSystem.prototype.get = function (scope, key, callback) {
     if (this.cache) {
-        return this.cache.get(scope,key,callback);
+        return this.cache.get(scope, key, callback);
     }
-    if(typeof callback !== "function"){
-        throw new Error("File Store cache disabled - only asynchronous access supported");
+    if (typeof callback !== 'function') {
+        throw new Error('File Store cache disabled - only asynchronous access supported');
     }
-    var storagePath = getStoragePath(this.storageBaseDir ,scope);
-    loadFile(storagePath + ".json").then(function(data){
-        var value;
-        if(data){
+    const storagePath = getStoragePath(this.storageBaseDir, scope);
+    loadFile(storagePath + '.json')
+        .then(function (data) {
+        let value;
+        if (data) {
             data = JSON.parse(data);
             if (!Array.isArray(key)) {
                 try {
-                    value = util.getObjectProperty(data,key);
-                } catch(err) {
-                    if (err.code === "INVALID_EXPR") {
+                    value = util_1.util.getObjectProperty(data, key);
+                }
+                catch (err) {
+                    if (err.code === 'INVALID_EXPR') {
                         throw err;
                     }
                     value = undefined;
                 }
                 callback(null, value);
-            } else {
-                var results = [undefined];
-                for (var i=0;i<key.length;i++) {
+            }
+            else {
+                const results = [undefined];
+                for (let i = 0; i < key.length; i++) {
                     try {
-                        value = util.getObjectProperty(data,key[i]);
-                    } catch(err) {
-                        if (err.code === "INVALID_EXPR") {
+                        value = util_1.util.getObjectProperty(data, key[i]);
+                    }
+                    catch (err) {
+                        if (err.code === 'INVALID_EXPR') {
                             throw err;
                         }
                         value = undefined;
                     }
-                    results.push(value)
+                    results.push(value);
                 }
-                callback.apply(null,results);
+                callback(...results);
             }
-        }else{
+        }
+        else {
             callback(null, undefined);
         }
-    }).catch(function(err){
+    })
+        .catch(function (err) {
         callback(err);
     });
 };
-
-LocalFileSystem.prototype.set = function(scope, key, value, callback) {
-    var self = this;
-    var storagePath = getStoragePath(this.storageBaseDir ,scope);
+LocalFileSystem.prototype.set = function (scope, key, value, callback) {
+    const self = this;
+    const storagePath = getStoragePath(this.storageBaseDir, scope);
     if (this.cache) {
-        this.cache.set(scope,key,value,callback);
+        this.cache.set(scope, key, value, callback);
         this.pendingWrites[scope] = true;
         if (this._pendingWriteTimeout) {
             // there's a pending write which will handle this
             return;
-        } else {
-            this._pendingWriteTimeout = setTimeout(function() {
-                self.writePromise = self.writePromise.then(function(){
-                    return self._flushPendingWrites.call(self).catch(function(err) {
-                        log.error(log._("context.localfilesystem.error-write",{message:err.toString()}));
-                    });
-                });
-            }, this.flushInterval);
         }
-    } else if (callback && typeof callback !== 'function') {
-        throw new Error("File Store cache disabled - only asynchronous access supported");
-    } else {
-        self.writePromise = self.writePromise.then(function() { return loadFile(storagePath + ".json") }).then(function(data){
-            var obj = data ? JSON.parse(data) : {}
+        this._pendingWriteTimeout = setTimeout(function () {
+            self.writePromise = self.writePromise.then(function () {
+                return self._flushPendingWrites.catch(function (err) {
+                    util_1.log.error(util_1.log._('context.localfilesystem.error-write', { message: err.toString() }));
+                });
+            });
+        }, this.flushInterval);
+    }
+    else if (callback && typeof callback !== 'function') {
+        throw new Error('File Store cache disabled - only asynchronous access supported');
+    }
+    else {
+        self.writePromise = self.writePromise
+            .then(function () {
+            return loadFile(storagePath + '.json');
+        })
+            .then(function (data) {
+            const obj = data ? JSON.parse(data) : {};
             if (!Array.isArray(key)) {
                 key = [key];
                 value = [value];
-            } else if (!Array.isArray(value)) {
+            }
+            else if (!Array.isArray(value)) {
                 // key is an array, but value is not - wrap it as an array
                 value = [value];
             }
-            for (var i=0;i<key.length;i++) {
-                var v = null;
-                if (i<value.length) {
+            for (let i = 0; i < key.length; i++) {
+                let v = null;
+                if (i < value.length) {
                     v = value[i];
                 }
-                util.setObjectProperty(obj,key[i],v);
+                util_1.util.setObjectProperty(obj, key[i], v);
             }
-            var stringifiedContext = stringify(obj);
+            const stringifiedContext = stringify(obj);
             if (stringifiedContext.circular && !self.knownCircularRefs[scope]) {
-                log.warn(log._("context.localfilesystem.error-circular",{scope:scope}));
+                util_1.log.warn(util_1.log._('context.localfilesystem.error-circular', { scope }));
                 self.knownCircularRefs[scope] = true;
-            } else {
+            }
+            else {
                 delete self.knownCircularRefs[scope];
             }
             return writeFileAtomic(storagePath, stringifiedContext.json);
-        }).then(function(){
-            if(typeof callback === "function"){
+        })
+            .then(function () {
+            if (typeof callback === 'function') {
                 callback(null);
             }
-        }).catch(function(err){
-            if(typeof callback === "function"){
+        })
+            .catch(function (err) {
+            if (typeof callback === 'function') {
                 callback(err);
             }
         });
     }
 };
-
-LocalFileSystem.prototype.keys = function(scope, callback){
+LocalFileSystem.prototype.keys = function (scope, callback) {
     if (this.cache) {
-        return this.cache.keys(scope,callback);
+        return this.cache.keys(scope, callback);
     }
-    if(typeof callback !== "function"){
-        throw new Error("Callback must be a function");
+    if (typeof callback !== 'function') {
+        throw new Error('Callback must be a function');
     }
-    var storagePath = getStoragePath(this.storageBaseDir ,scope);
-    loadFile(storagePath + ".json").then(function(data){
-        if(data){
+    const storagePath = getStoragePath(this.storageBaseDir, scope);
+    loadFile(storagePath + '.json')
+        .then(function (data) {
+        if (data) {
             callback(null, Object.keys(JSON.parse(data)));
-        }else{
+        }
+        else {
             callback(null, []);
         }
-    }).catch(function(err){
+    })
+        .catch(function (err) {
         callback(err);
     });
 };
-
-LocalFileSystem.prototype.delete = function(scope){
-    var cachePromise;
+LocalFileSystem.prototype.delete = function (scope) {
+    let cachePromise;
     if (this.cache) {
         cachePromise = this.cache.delete(scope);
-    } else {
+    }
+    else {
         cachePromise = Promise.resolve();
     }
-    var that = this;
+    const that = this;
     delete this.pendingWrites[scope];
-    return cachePromise.then(function() {
-        var storagePath = getStoragePath(that.storageBaseDir,scope);
-        return fs.remove(storagePath + ".json");
+    return cachePromise.then(function () {
+        const storagePath = getStoragePath(that.storageBaseDir, scope);
+        return fs_extra_1.default.remove(storagePath + '.json');
     });
-}
-
-LocalFileSystem.prototype.clean = function(_activeNodes) {
-    var activeNodes = {};
-    _activeNodes.forEach(function(node) { activeNodes[node] = true });
-    var self = this;
-    var cachePromise;
+};
+LocalFileSystem.prototype.clean = function (_activeNodes) {
+    const activeNodes = {};
+    _activeNodes.forEach(function (node) {
+        activeNodes[node] = true;
+    });
+    const self = this;
+    let cachePromise;
     if (this.cache) {
         cachePromise = this.cache.clean(_activeNodes);
-    } else {
+    }
+    else {
         cachePromise = Promise.resolve();
     }
     this.knownCircularRefs = {};
-    return cachePromise.then(() => listFiles(self.storageBaseDir)).then(function(files) {
-        var promises = [];
-        files.forEach(function(file) {
-            var parts = file.split(path.sep);
-            var removePromise;
+    return cachePromise
+        .then(() => listFiles(self.storageBaseDir))
+        .then(function (files) {
+        const promises = [];
+        files.forEach(function (file) {
+            const parts = file.split(node_path_1.default.sep);
+            let removePromise;
             if (parts[0] === 'global') {
                 // never clean global
                 return;
-            } else if (!activeNodes[parts[0]]) {
+            }
+            else if (!activeNodes[parts[0]]) {
                 // Flow removed - remove the whole dir
-                removePromise = fs.remove(path.join(self.storageBaseDir,parts[0]));
-            } else if (parts[1] !== 'flow.json' && !activeNodes[parts[1].substring(0,parts[1].length-5)]) {
+                removePromise = fs_extra_1.default.remove(node_path_1.default.join(self.storageBaseDir, parts[0]));
+            }
+            else if (parts[1] !== 'flow.json' && !activeNodes[parts[1].substring(0, parts[1].length - 5)]) {
                 // Node removed - remove the context file
-                removePromise = fs.remove(path.join(self.storageBaseDir,file));
+                removePromise = fs_extra_1.default.remove(node_path_1.default.join(self.storageBaseDir, file));
             }
             if (removePromise) {
                 promises.push(removePromise);
             }
         });
-        return Promise.all(promises)
-    })
-}
-
-module.exports = function(config){
-    return new LocalFileSystem(config);
+        return Promise.all(promises);
+    });
 };
+function default_1(config) {
+    return new LocalFileSystem(config);
+}
+exports.default = default_1;
+//# sourceMappingURL=localfilesystem.js.map

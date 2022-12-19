@@ -1,4 +1,7 @@
-/*!
+"use strict";
+/* eslint-disable no-use-before-define */
+/* eslint-disable no-prototype-builtins */
+/* !
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,46 +16,75 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var externalAPI = require("./api");
-
-var redNodes = require("./nodes");
-var flows = require("./flows");
-var storage = require("./storage");
-var library = require("./library");
-var plugins = require("./plugins");
-var settings = require("./settings");
-
-var express = require("express");
-var path = require('path');
-var fs = require("fs");
-var os = require("os");
-
-const {log,i18n,events,exec,util,hooks} = require("@node-red/util");
-
-var runtimeMetricInterval = null;
-
-var started = false;
-
-var stubbedExpressApp = {
-    get: function() {},
-    post: function() {},
-    put: function() {},
-    delete: function() {}
-}
-var adminApi = {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const settings_js_1 = require("./settings.js");
+const plugins_js_1 = __importDefault(require("./plugins.js"));
+const util_1 = require("@node-red/util");
+const node_path_1 = __importDefault(require("node:path"));
+const node_fs_1 = __importDefault(require("node:fs"));
+const node_os_1 = __importDefault(require("node:os"));
+const express_1 = __importDefault(require("express"));
+const index_js_1 = __importDefault(require("./api/index.js"));
+const index_js_2 = __importDefault(require("./nodes/index.js"));
+const index_js_3 = __importDefault(require("./flows/index.js"));
+const index_js_4 = __importDefault(require("./storage/index.js"));
+const index_js_5 = __importDefault(require("./library/index.js"));
+let runtimeMetricInterval = null;
+let started = false;
+const stubbedExpressApp = {
+    get() {
+        //
+    },
+    post() {
+        //
+    },
+    put() {
+        //
+    },
+    delete() {
+        //
+    }
+};
+let adminApi = {
     auth: {
-        needsPermission: function() {return function(req,res,next) {next()}}
+        needsPermission() {
+            return function (req, res, next) {
+                next();
+            };
+        }
     },
     adminApp: stubbedExpressApp,
     server: {}
-}
-
-var nodeApp;
-var adminApp;
-var server;
-
-
+};
+let nodeApp;
+let adminApp;
+let server;
 /**
  * Initialise the runtime module.
  * @param {Object} settings - the runtime settings object
@@ -61,18 +93,19 @@ var server;
  *                              better abstracted.
  * @memberof @node-red/runtime
  */
-function init(userSettings,httpServer,_adminApi) {
+function init(userSettings, httpServer, _adminApi) {
     server = httpServer;
-
     if (server && server.on) {
         // Add a listener to the upgrade event so that we can properly timeout connection
         // attempts that do not get handled by any nodes in the user's flow.
         // See #2956
-        server.on('upgrade',(request, socket, head) => {
+        server.on('upgrade', (request, socket, head) => {
             // Add a no-op handler to the error event in case nothing upgrades this socket
             // before the remote end closes it. This ensures we don't get as uncaughtException
-            socket.on("error", err => {})
-            setTimeout(function() {
+            socket.on('error', (err) => {
+                //
+            });
+            setTimeout(function () {
                 // If this request has been handled elsewhere, the upgrade will have
                 // been completed and bytes written back to the client.
                 // If nothing has been written on the socket, nothing has handled the
@@ -80,39 +113,36 @@ function init(userSettings,httpServer,_adminApi) {
                 if (socket.bytesWritten === 0) {
                     socket.destroy();
                 }
-            },userSettings.inboundWebSocketTimeout || 5000)
+            }, userSettings.inboundWebSocketTimeout || 5000);
         });
     }
-
     userSettings.version = getVersion();
-    settings.init(userSettings);
-
-    nodeApp = express();
-    adminApp = express();
-
+    settings_js_1.persistentSettings.init(userSettings);
+    nodeApp = (0, express_1.default)();
+    adminApp = (0, express_1.default)();
     if (_adminApi) {
         adminApi = _adminApi;
     }
-    redNodes.init(runtime);
-    externalAPI.init(runtime);
+    index_js_2.default.init(runtime);
+    index_js_1.default.init(runtime);
 }
-
-var version;
-
-function getVersion() {
+let version;
+async function getVersion() {
+    var _a;
     if (!version) {
-        version = require(path.join(__dirname,"..","package.json")).version;
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        version = await (_a = node_path_1.default.join(__dirname, '..', 'package.json'), Promise.resolve().then(() => __importStar(require(_a)))).then(({ version }) => version);
         /* istanbul ignore else */
         try {
-            fs.statSync(path.join(__dirname,"..","..","..","..",".git"));
-            version += "-git";
-        } catch(err) {
+            node_fs_1.default.statSync(node_path_1.default.join(__dirname, '..', '..', '..', '..', '.git'));
+            version += '-git';
+        }
+        catch (err) {
             // No git directory
         }
     }
     return version;
 }
-
 /**
  * Start the runtime.
  * @return {Promise} - resolves when the runtime is started. This does not mean the
@@ -120,164 +150,192 @@ function getVersion() {
  * @memberof @node-red/runtime
  */
 function start() {
-    return i18n.registerMessageCatalog("runtime",path.resolve(path.join(__dirname,"..","locales")),"runtime.json")
-        .then(function() { return storage.init(runtime)})
-        .then(function() { return settings.load(storage)})
-        .then(function() { return library.init(runtime)})
-        .then(function() {
-
-            if (log.metric()) {
-                runtimeMetricInterval = setInterval(function() {
-                    reportMetrics();
-                }, settings.runtimeMetricInterval||15000);
+    return util_1.i18n
+        .registerMessageCatalog('runtime', node_path_1.default.resolve(node_path_1.default.join(__dirname, '..', 'locales')), 'runtime.json')
+        .then(function () {
+        return index_js_4.default.init(runtime);
+    })
+        .then(function () {
+        return settings_js_1.persistentSettings.load(index_js_4.default);
+    })
+        .then(function () {
+        return index_js_5.default.init(runtime);
+    })
+        .then(function () {
+        if (util_1.log.metric()) {
+            runtimeMetricInterval = setInterval(function () {
+                reportMetrics();
+            }, settings_js_1.persistentSettings.runtimeMetricInterval || 15000);
+        }
+        util_1.log.info('\n\n' + util_1.log._('runtime.welcome') + '\n===================\n');
+        if (settings_js_1.persistentSettings.version) {
+            util_1.log.info(util_1.log._('runtime.version', { component: 'Node-RED', version: 'v' + settings_js_1.persistentSettings.version }));
+        }
+        util_1.log.info(util_1.log._('runtime.version', { component: 'Node.js ', version: process.version }));
+        if (settings_js_1.persistentSettings.UNSUPPORTED_VERSION) {
+            util_1.log.error('*****************************************************************');
+            util_1.log.error('* ' + util_1.log._('runtime.unsupported_version', { component: 'Node.js', version: process.version, requires: '>=8.9.0' }) + ' *');
+            util_1.log.error('*****************************************************************');
+            util_1.events.emit('runtime-event', {
+                id: 'runtime-unsupported-version',
+                payload: { type: 'error', text: 'notification.errors.unsupportedVersion' },
+                retain: true
+            });
+        }
+        util_1.log.info(node_os_1.default.type() + ' ' + node_os_1.default.release() + ' ' + node_os_1.default.arch() + ' ' + node_os_1.default.endianness());
+        return index_js_2.default.load().then(function () {
+            let autoInstallModules = false;
+            if (settings_js_1.persistentSettings.hasOwnProperty('autoInstallModules')) {
+                util_1.log.warn(util_1.log._('server.deprecatedOption', { old: 'autoInstallModules', new: 'externalModules.autoInstall' }));
+                autoInstallModules = true;
             }
-            log.info("\n\n"+log._("runtime.welcome")+"\n===================\n");
-            if (settings.version) {
-                log.info(log._("runtime.version",{component:"Node-RED",version:"v"+settings.version}));
+            if (settings_js_1.persistentSettings.externalModules) {
+                // autoInstallModules = autoInstall enabled && (no palette setting || palette install not disabled)
+                autoInstallModules =
+                    settings_js_1.persistentSettings.externalModules.autoInstall &&
+                        (!settings_js_1.persistentSettings.externalModules.palette || settings_js_1.persistentSettings.externalModules.palette.allowInstall !== false);
             }
-            log.info(log._("runtime.version",{component:"Node.js ",version:process.version}));
-            if (settings.UNSUPPORTED_VERSION) {
-                log.error("*****************************************************************");
-                log.error("* "+log._("runtime.unsupported_version",{component:"Node.js",version:process.version,requires: ">=8.9.0"})+" *");
-                log.error("*****************************************************************");
-                events.emit("runtime-event",{id:"runtime-unsupported-version",payload:{type:"error",text:"notification.errors.unsupportedVersion"},retain:true});
-            }
-            log.info(os.type()+" "+os.release()+" "+os.arch()+" "+os.endianness());
-            return redNodes.load().then(function() {
-                let autoInstallModules = false;
-                if (settings.hasOwnProperty('autoInstallModules')) {
-                    log.warn(log._("server.deprecatedOption",{old:"autoInstallModules", new:"externalModules.autoInstall"}));
-                    autoInstallModules = true;
+            let i;
+            const nodeErrors = index_js_2.default.getNodeList(function (n) {
+                return n.err !== null;
+            });
+            const nodeMissing = index_js_2.default.getNodeList(function (n) {
+                return n.module && n.enabled && !n.loaded && !n.err;
+            });
+            if (nodeErrors.length > 0) {
+                util_1.log.warn('------------------------------------------------------');
+                for (i = 0; i < nodeErrors.length; i += 1) {
+                    if (nodeErrors[i]?.err?.code === 'type_already_registered') {
+                        util_1.log.warn('[' +
+                            nodeErrors[i].id +
+                            '] ' +
+                            util_1.log._('server.type-already-registered', {
+                                type: nodeErrors[i].err.details.type,
+                                module: nodeErrors[i].err.details.moduleA
+                            }));
+                    }
+                    else {
+                        util_1.log.warn('[' + nodeErrors[i].id + '] ' + nodeErrors[i].err);
+                    }
                 }
-                if (settings.externalModules) {
-                    // autoInstallModules = autoInstall enabled && (no palette setting || palette install not disabled)
-                    autoInstallModules = settings.externalModules.autoInstall && (!settings.externalModules.palette || settings.externalModules.palette.allowInstall !== false) ;
+                util_1.log.warn('------------------------------------------------------');
+            }
+            if (nodeMissing.length > 0) {
+                util_1.log.warn(util_1.log._('server.missing-modules'));
+                const missingModules = {};
+                for (i = 0; i < nodeMissing.length; i++) {
+                    const missing = nodeMissing[i];
+                    missingModules[missing.module] = missingModules[missing.module] || {
+                        module: missing.module,
+                        version: missing.pending_version || missing.version,
+                        types: []
+                    };
+                    missingModules[missing.module].types = missingModules[missing.module].types.concat(missing.types);
                 }
-                var i;
-                var nodeErrors = redNodes.getNodeList(function(n) { return n.err!=null;});
-                var nodeMissing = redNodes.getNodeList(function(n) { return n.module && n.enabled && !n.loaded && !n.err;});
-                if (nodeErrors.length > 0) {
-                    log.warn("------------------------------------------------------");
-                    for (i=0;i<nodeErrors.length;i+=1) {
-                        if (nodeErrors[i].err.code === "type_already_registered") {
-                            log.warn("["+nodeErrors[i].id+"] "+log._("server.type-already-registered",{type:nodeErrors[i].err.details.type,module: nodeErrors[i].err.details.moduleA}));
-                        } else {
-                            log.warn("["+nodeErrors[i].id+"] "+nodeErrors[i].err);
+                const moduleList = [];
+                const promises = [];
+                const installingModules = [];
+                for (i in missingModules) {
+                    if (missingModules.hasOwnProperty(i)) {
+                        util_1.log.warn(' - ' + i + ' (' + missingModules[i].version + '): ' + missingModules[i].types.join(', '));
+                        if (autoInstallModules && i !== 'node-red') {
+                            installingModules.push({ id: i, version: missingModules[i].version });
                         }
                     }
-                    log.warn("------------------------------------------------------");
                 }
-                if (nodeMissing.length > 0) {
-                    log.warn(log._("server.missing-modules"));
-                    var missingModules = {};
-                    for (i=0;i<nodeMissing.length;i++) {
-                        var missing = nodeMissing[i];
-                        missingModules[missing.module] = missingModules[missing.module]||{
-                            module:missing.module,
-                            version:missing.pending_version||missing.version,
-                            types:[]
-                        }
-                        missingModules[missing.module].types = missingModules[missing.module].types.concat(missing.types);
-                    }
-                    var moduleList = [];
-                    var promises = [];
-                    var installingModules = [];
-                    for (i in missingModules) {
-                        if (missingModules.hasOwnProperty(i)) {
-                            log.warn(" - "+i+" ("+missingModules[i].version+"): "+missingModules[i].types.join(", "));
-                            if (autoInstallModules && i != "node-red") {
-                                installingModules.push({id:i,version:missingModules[i].version});
-                            }
-                        }
-                    }
-                    if (!autoInstallModules) {
-                        log.info(log._("server.removing-modules"));
-                        redNodes.cleanModuleList();
-                    } else if (installingModules.length > 0) {
-                        reinstallAttempts = 0;
-                        reinstallModules(installingModules);
-                    }
+                if (!autoInstallModules) {
+                    util_1.log.info(util_1.log._('server.removing-modules'));
+                    index_js_2.default.cleanModuleList();
                 }
-                if (settings.settingsFile) {
-                    log.info(log._("runtime.paths.settings",{path:settings.settingsFile}));
+                else if (installingModules.length > 0) {
+                    reinstallAttempts = 0;
+                    reinstallModules(installingModules);
                 }
-                if (settings.httpRoot !== undefined) {
-                    log.warn(log._("server.deprecatedOption",{old:"httpRoot", new: "httpNodeRoot/httpAdminRoot"}));
+            }
+            if (settings_js_1.persistentSettings.settingsFile) {
+                util_1.log.info(util_1.log._('runtime.paths.settings', { path: settings_js_1.persistentSettings.settingsFile }));
+            }
+            if (settings_js_1.persistentSettings.httpRoot !== undefined) {
+                util_1.log.warn(util_1.log._('server.deprecatedOption', { old: 'httpRoot', new: 'httpNodeRoot/httpAdminRoot' }));
+            }
+            if (settings_js_1.persistentSettings.readOnly) {
+                util_1.log.info(util_1.log._('settings.readonly-mode'));
+            }
+            if (settings_js_1.persistentSettings.httpStatic && settings_js_1.persistentSettings.httpStatic.length) {
+                for (let si = 0; si < settings_js_1.persistentSettings.httpStatic.length; si++) {
+                    const p = node_path_1.default.resolve(settings_js_1.persistentSettings.httpStatic[si].path);
+                    const r = settings_js_1.persistentSettings.httpStatic[si].root || '/';
+                    util_1.log.info(util_1.log._('runtime.paths.httpStatic', { path: `${p} > ${r}` }));
                 }
-                if (settings.readOnly){
-                    log.info(log._("settings.readonly-mode"))
-                }
-                if (settings.httpStatic && settings.httpStatic.length) {
-                    for (let si = 0; si < settings.httpStatic.length; si++) {
-                        let p = path.resolve(settings.httpStatic[si].path);
-                        let r = settings.httpStatic[si].root || "/";
-                        log.info(log._("runtime.paths.httpStatic",{path:`${p} > ${r}`}));
-                    }
-                }
-                return redNodes.loadContextsPlugin().then(function () {
-                    redNodes.loadFlows().then(() => { redNodes.startFlows() }).catch(function(err) {});
-                    started = true;
-                });
+            }
+            return index_js_2.default.loadContextsPlugin().then(function () {
+                index_js_2.default
+                    .loadFlows()
+                    .then(() => {
+                    index_js_2.default.startFlows();
+                })
+                    .catch();
+                started = true;
             });
         });
+    });
 }
-
-var reinstallAttempts = 0;
-var reinstallTimeout;
+let reinstallAttempts = 0;
+let reinstallTimeout;
 function reinstallModules(moduleList) {
     const promises = [];
     const reinstallList = [];
-    var installRetry = 30000;
-    if (settings.hasOwnProperty('autoInstallModulesRetry')) {
-        log.warn(log._("server.deprecatedOption",{old:"autoInstallModulesRetry", new:"externalModules.autoInstallRetry"}));
-        installRetry = settings.autoInstallModulesRetry;
+    let installRetry = 30000;
+    if (settings_js_1.persistentSettings.autoInstallModulesRetry) {
+        util_1.log.warn(util_1.log._('server.deprecatedOption', { old: 'autoInstallModulesRetry', new: 'externalModules.autoInstallRetry' }));
+        installRetry = settings_js_1.persistentSettings.autoInstallModulesRetry;
     }
-    if (settings.externalModules && settings.externalModules.hasOwnProperty('autoInstallRetry')) {
-        installRetry = settings.externalModules.autoInstallRetry * 1000;
+    if (settings_js_1.persistentSettings.externalModules && settings_js_1.persistentSettings.externalModules.hasOwnProperty('autoInstallRetry')) {
+        installRetry = settings_js_1.persistentSettings.externalModules.autoInstallRetry * 1000;
     }
-    for (var i=0;i<moduleList.length;i++) {
-        if (moduleList[i].id != "node-red") {
-            (function(mod) {
-                promises.push(redNodes.installModule(mod.id,mod.version).then(m => {
-                    events.emit("runtime-event",{id:"node/added",retain:false,payload:m.nodes});
-                }).catch(err => {
+    for (let i = 0; i < moduleList.length; i++) {
+        if (moduleList[i].id !== 'node-red') {
+            (function (mod) {
+                promises.push(index_js_2.default
+                    .installModule(mod.id, mod.version)
+                    .then((m) => {
+                    util_1.events.emit('runtime-event', { id: 'node/added', retain: false, payload: m.nodes });
+                })
+                    .catch((err) => {
                     reinstallList.push(mod);
                 }));
-            })(moduleList[i])
+            })(moduleList[i]);
         }
     }
-    Promise.all(promises).then(function(results) {
+    Promise.all(promises).then(function (results) {
         if (reinstallList.length > 0) {
             reinstallAttempts++;
             // First 5 at 1x timeout, next 5 at 2x, next 5 at 4x, then 8x
-            var timeout = installRetry * Math.pow(2,Math.min(Math.floor(reinstallAttempts/5),3));
-            reinstallTimeout = setTimeout(function() {
+            const timeout = installRetry * Math.pow(2, Math.min(Math.floor(reinstallAttempts / 5), 3));
+            reinstallTimeout = setTimeout(function () {
                 reinstallModules(reinstallList);
-            },timeout);
+            }, timeout);
         }
     });
 }
-
 function reportMetrics() {
-    var memUsage = process.memoryUsage();
-
-    log.log({
-        level: log.METRIC,
-        event: "runtime.memory.rss",
+    const memUsage = process.memoryUsage();
+    util_1.log.log({
+        level: util_1.log.METRIC,
+        event: 'runtime.memory.rss',
         value: memUsage.rss
     });
-    log.log({
-        level: log.METRIC,
-        event: "runtime.memory.heapTotal",
+    util_1.log.log({
+        level: util_1.log.METRIC,
+        event: 'runtime.memory.heapTotal',
         value: memUsage.heapTotal
     });
-    log.log({
-        level: log.METRIC,
-        event: "runtime.memory.heapUsed",
+    util_1.log.log({
+        level: util_1.log.METRIC,
+        event: 'runtime.memory.heapUsed',
         value: memUsage.heapUsed
     });
 }
-
 /**
  * Stops the runtime.
  *
@@ -296,36 +354,41 @@ function stop() {
         clearTimeout(reinstallTimeout);
     }
     started = false;
-    return redNodes.stopFlows().then(function(){
-        return redNodes.closeContextsPlugin();
+    return index_js_2.default.stopFlows().then(function () {
+        return index_js_2.default.closeContextsPlugin();
     });
 }
-
-
 // This is the internal api
-var runtime = {
+const runtime = {
     version: getVersion,
-    log: log,
-    i18n: i18n,
-    events: events,
-    settings: settings,
-    storage: storage,
-    hooks: hooks,
-    nodes: redNodes,
-    plugins: plugins,
-    flows: flows,
-    library: library,
-    exec: exec,
-    util: util,
-    get adminApi() { return adminApi },
-    get adminApp() { return adminApp },
-    get nodeApp() { return nodeApp },
-    get server() { return server },
-    isStarted: function() {
+    log: util_1.log,
+    i18n: util_1.i18n,
+    events: util_1.events,
+    settings: settings_js_1.persistentSettings,
+    storage: index_js_4.default,
+    hooks: util_1.hooks,
+    nodes: index_js_2.default,
+    plugins: plugins_js_1.default,
+    flows: index_js_3.default,
+    library: index_js_5.default,
+    exec: util_1.exec,
+    util: util_1.util,
+    get adminApi() {
+        return adminApi;
+    },
+    get adminApp() {
+        return adminApp;
+    },
+    get nodeApp() {
+        return nodeApp;
+    },
+    get server() {
+        return server;
+    },
+    isStarted() {
         return started;
     }
 };
-
 /**
  * This module provides the core runtime component of Node-RED.
  * It does *not* include the Node-RED editor. All interaction with
@@ -333,92 +396,90 @@ var runtime = {
  *
  * @namespace @node-red/runtime
  */
-module.exports = {
-    init: init,
-    start: start,
-    stop: stop,
-
+exports.default = {
+    init,
+    start,
+    stop,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_comms
-    */
-    comms: externalAPI.comms,
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_comms
+     */
+    comms: index_js_1.default.comms,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_flows
-    */
-    flows: externalAPI.flows,
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_flows
+     */
+    flows: index_js_1.default.flows,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_library
-    */
-    library: externalAPI.library,
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_library
+     */
+    library: index_js_1.default.library,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_nodes
-    */
-    nodes: externalAPI.nodes,
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_nodes
+     */
+    nodes: index_js_1.default.nodes,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_settings
-    */
-    settings: externalAPI.settings,
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_settings
+     */
+    settings: index_js_1.default.settings,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_projects
-    */
-    projects: externalAPI.projects,
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_projects
+     */
+    projects: index_js_1.default.projects,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_context
-    */
-    context: externalAPI.context,
-
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_context
+     */
+    context: index_js_1.default.context,
     /**
-    * @memberof @node-red/runtime
-    * @mixes @node-red/runtime_plugins
-    */
-    plugins: externalAPI.plugins,
-
+     * @memberof @node-red/runtime
+     * @mixes @node-red/runtime_plugins
+     */
+    plugins: index_js_1.default.plugins,
     /**
-    * Returns whether the runtime is started
-    * @param {Object} opts
-    * @param {User} opts.user - the user calling the api
-    * @return {Promise<Boolean>} - whether the runtime is started
-    * @function
-    * @memberof @node-red/runtime
-    */
-    isStarted: externalAPI.isStarted,
-
+     * Returns whether the runtime is started
+     * @param {Object} opts
+     * @param {User} opts.user - the user calling the api
+     * @return {Promise<Boolean>} - whether the runtime is started
+     * @function
+     * @memberof @node-red/runtime
+     */
+    isStarted: index_js_1.default.isStarted,
     /**
-    * Returns version number of the runtime
-    * @param {Object} opts
-    * @param {User} opts.user - the user calling the api
-    * @return {Promise<String>} - the runtime version number
-    * @function
-    * @memberof @node-red/runtime
-    */
-    version: externalAPI.version,
-
+     * Returns version number of the runtime
+     * @param {Object} opts
+     * @param {User} opts.user - the user calling the api
+     * @return {Promise<String>} - the runtime version number
+     * @function
+     * @memberof @node-red/runtime
+     */
+    version: index_js_1.default.version,
     /**
-    * @memberof @node-red/diagnostics
-    */
-    diagnostics:externalAPI.diagnostics,
-
-    storage: storage,
-    events: events,
-    hooks: hooks,
-    util: require("@node-red/util").util,
-    get httpNode() { return nodeApp },
-    get httpAdmin() { return adminApp },
-    get server() { return server },
-
-    "_": runtime
-}
-
-
+     * @memberof @node-red/diagnostics
+     */
+    diagnostics: index_js_1.default.diagnostics,
+    storage: index_js_4.default,
+    events: util_1.events,
+    hooks: util_1.hooks,
+    util: util_1.util,
+    get httpNode() {
+        return nodeApp;
+    },
+    get httpAdmin() {
+        return adminApp;
+    },
+    get server() {
+        return server;
+    },
+    _: runtime
+};
 /**
  * A user accessing the API
  * @typedef User
  * @type {object}
  */
+//# sourceMappingURL=index.js.map

@@ -1,3 +1,6 @@
+"use strict";
+/* eslint-disable no-prototype-builtins */
+/* eslint-disable no-underscore-dangle */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,161 +16,163 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var util = require("@node-red/util").util;
-
-function Memory(config){
+Object.defineProperty(exports, "__esModule", { value: true });
+const util_1 = require("@node-red/util");
+function Memory() {
     this.data = {};
 }
-
-Memory.prototype.open = function(){
+Memory.prototype.open = function () {
     return Promise.resolve();
 };
-
-Memory.prototype.close = function(){
+Memory.prototype.close = function () {
     return Promise.resolve();
 };
-
-Memory.prototype._getOne = function(scope, key) {
-    var value;
-    var error;
-    if(this.data[scope]){
+Memory.prototype._getOne = function (scope, key) {
+    let value;
+    let error;
+    if (this.data[scope]) {
         try {
-            value = util.getObjectProperty(this.data[scope], key);
-        } catch(err) {
-            if (err.code === "INVALID_EXPR") {
+            value = util_1.util.getObjectProperty(this.data[scope], key);
+        }
+        catch (err) {
+            if (err.code === 'INVALID_EXPR') {
                 throw err;
             }
             value = undefined;
         }
     }
     return value;
-}
-
-Memory.prototype.get = function(scope, key, callback) {
-    var value;
-    var error;
+};
+Memory.prototype.get = function (scope, key, callback) {
+    let value;
+    let error;
     if (!Array.isArray(key)) {
         try {
-            value = this._getOne(scope,key);
-        } catch(err) {
+            value = this._getOne(scope, key);
+        }
+        catch (err) {
             if (!callback) {
                 throw err;
             }
             error = err;
         }
         if (callback) {
-            callback(error,value);
+            callback(error, value);
             return;
-        } else {
-            return value;
         }
+        return value;
     }
-
     value = [];
-    for (var i=0; i<key.length; i++) {
+    for (let i = 0; i < key.length; i++) {
         try {
-            value.push(this._getOne(scope,key[i]));
-        } catch(err) {
+            value.push(this._getOne(scope, key[i]));
+        }
+        catch (err) {
             if (!callback) {
                 throw err;
-            } else {
+            }
+            else {
                 callback(err);
                 return;
             }
         }
     }
     if (callback) {
-        callback.apply(null, [undefined].concat(value));
-    } else {
+        callback(...[undefined].concat(value));
+    }
+    else {
         return value;
     }
 };
-
-Memory.prototype.set = function(scope, key, value, callback) {
-    if(!this.data[scope]){
+Memory.prototype.set = function (scope, key, value, callback) {
+    if (!this.data[scope]) {
         this.data[scope] = {};
     }
-    var error;
+    let error;
     if (!Array.isArray(key)) {
         key = [key];
         value = [value];
-    } else if (!Array.isArray(value)) {
+    }
+    else if (!Array.isArray(value)) {
         // key is an array, but value is not - wrap it as an array
         value = [value];
     }
     try {
-        for (var i=0; i<key.length; i++) {
-            var v = null;
+        for (let i = 0; i < key.length; i++) {
+            let v = null;
             if (i < value.length) {
                 v = value[i];
             }
-            util.setObjectProperty(this.data[scope],key[i],v);
+            util_1.util.setObjectProperty(this.data[scope], key[i], v);
         }
-    } catch(err) {
+    }
+    catch (err) {
         if (callback) {
             error = err;
-        } else {
+        }
+        else {
             throw err;
         }
     }
-    if(callback){
+    if (callback) {
         callback(error);
     }
 };
-
-Memory.prototype.keys = function(scope, callback){
-    var values = [];
-    var error;
-    try{
-        if(this.data[scope]){
-            if (scope !== "global") {
+Memory.prototype.keys = function (scope, callback) {
+    let values = [];
+    let error;
+    try {
+        if (this.data[scope]) {
+            if (scope !== 'global') {
                 values = Object.keys(this.data[scope]);
-            } else {
+            }
+            else {
                 values = Object.keys(this.data[scope]).filter(function (key) {
-                    return key !== "set" && key !== "get" && key !== "keys";
+                    return key !== 'set' && key !== 'get' && key !== 'keys';
                 });
             }
         }
-    }catch(err){
-        if(callback){
+    }
+    catch (err) {
+        if (callback) {
             error = err;
-        }else{
+        }
+        else {
             throw err;
         }
     }
-    if(callback){
-        if(error){
+    if (callback) {
+        if (error) {
             callback(error);
-        } else {
+        }
+        else {
             callback(null, values);
         }
-    } else {
+    }
+    else {
         return values;
     }
 };
-
-Memory.prototype.delete = function(scope){
+Memory.prototype.delete = function (scope) {
     delete this.data[scope];
     return Promise.resolve();
 };
-
-Memory.prototype.clean = function(activeNodes){
-    for(var id in this.data){
-        if(this.data.hasOwnProperty(id) && id !== "global"){
-            var idParts = id.split(":");
-            if(activeNodes.indexOf(idParts[0]) === -1){
+Memory.prototype.clean = function (activeNodes) {
+    for (const id in this.data) {
+        if (this.data.hasOwnProperty(id) && id !== 'global') {
+            const idParts = id.split(':');
+            if (activeNodes.indexOf(idParts[0]) === -1) {
                 delete this.data[id];
             }
         }
     }
     return Promise.resolve();
-}
-
-Memory.prototype._export = function() {
-    return this.data;
-}
-
-module.exports = function(config){
-    return new Memory(config);
 };
+Memory.prototype._export = function () {
+    return this.data;
+};
+function default_1() {
+    return new Memory();
+}
+exports.default = default_1;
+//# sourceMappingURL=memory.js.map

@@ -1,3 +1,5 @@
+"use strict";
+/* eslint-disable no-prototype-builtins */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,34 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var authCache = {}
-
-module.exports = {
-    init: function() {
+Object.defineProperty(exports, "__esModule", { value: true });
+let authCache = {};
+exports.default = {
+    init() {
         authCache = {};
     },
-    clear: function(project,remote, user) {
+    clear(project, remote, user) {
         if (user && remote && authCache[project] && authCache[project][remote]) {
             delete authCache[project][remote][user];
-        } else if (remote && authCache.hasOwnProperty(project)) {
+        }
+        else if (remote && authCache.hasOwnProperty(project)) {
             delete authCache[project][remote];
-        } else {
+        }
+        else {
             delete authCache[project];
         }
     },
-    set: function(project,remote,user,auth) {
-         // console.log("AuthCache.set",remote,user,auth);
-        authCache[project] = authCache[project]||{};
-        authCache[project][remote] = authCache[project][remote]||{};
+    set(project, remote, user, auth) {
+        // console.log("AuthCache.set",remote,user,auth);
+        authCache[project] = authCache[project] || {};
+        authCache[project][remote] = authCache[project][remote] || {};
         authCache[project][remote][user] = auth;
         // console.log(JSON.stringify(authCache,'',4));
     },
-    get: function(project,remote,user) {
+    get(project, remote, user) {
         // console.log("AuthCache.get",remote,user,authCache[project]&&authCache[project][remote]&&authCache[project][remote][user]);
         if (authCache[project] && authCache[project][remote]) {
             return authCache[project][remote][user];
         }
-        return
+        return;
     }
-}
+};
+//# sourceMappingURL=authCache.js.map

@@ -451,7 +451,7 @@ export function getObjectProperty(msg, expr) {
  * @param  {boolean} createMissing - whether to create missing parent properties
  * @memberof @node-red/util_util
  */
-export function setMessageProperty(msg, prop, value, createMissing) {
+export function setMessageProperty(msg, prop, value, createMissing = false) {
   if (prop.indexOf('msg.') === 0) {
     prop = prop.substring(4);
   }
@@ -467,7 +467,7 @@ export function setMessageProperty(msg, prop, value, createMissing) {
  * @param  {boolean} createMissing - whether to create missing parent properties
  * @memberof @node-red/util_util
  */
-export function setObjectProperty(msg, prop, value, createMissing) {
+export function setObjectProperty(msg, prop, value, createMissing = false) {
   if (typeof createMissing === 'undefined') {
     createMissing = typeof value !== 'undefined';
   }
@@ -794,7 +794,7 @@ export function normaliseNodeTypeName(name) {
  * @return {Object} the encoded object
  * @memberof @node-red/util_util
  */
-export function encodeObject(msg, opts) {
+export function encodeObject(msg, opts?) {
   let debuglength = 1000;
   try {
     if (opts && hasOwnProperty.call(opts, 'maxLength')) {

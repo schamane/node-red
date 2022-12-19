@@ -1,3 +1,5 @@
+"use strict";
+/* eslint-disable no-prototype-builtins */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,40 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var crypto = require('crypto');
-var runtime;
-var settings;
-var log;
-
-
-var encryptedCredentials = null;
-var credentialCache = {};
-var credentialsDef = {};
-var dirty = false;
-
-var removeDefaultKey = false;
-var encryptionEnabled = null;
-var encryptionKeyType; // disabled, system, user, project
-var encryptionAlgorithm = "aes-256-ctr";
-var encryptionKey;
-
-function decryptCredentials(key,credentials) {
-    var creds = credentials["$"];
-    var initVector = Buffer.from(creds.substring(0, 32),'hex');
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const crypto_1 = __importDefault(require("crypto"));
+let runtime;
+let settings;
+let log;
+let encryptedCredentials = null;
+let credentialCache = {};
+let credentialsDef = {};
+let dirty = false;
+let removeDefaultKey = false;
+let encryptionEnabled = null;
+let encryptionKeyType; // disabled, system, user, project
+const encryptionAlgorithm = 'aes-256-ctr';
+let encryptionKey;
+function decryptCredentials(key, credentials) {
+    let creds = credentials.$;
+    const initVector = Buffer.from(creds.substring(0, 32), 'hex');
     creds = creds.substring(32);
-    var decipher = crypto.createDecipheriv(encryptionAlgorithm, key, initVector);
-    var decrypted = decipher.update(creds, 'base64', 'utf8') + decipher.final('utf8');
+    const decipher = crypto_1.default.createDecipheriv(encryptionAlgorithm, key, initVector);
+    const decrypted = decipher.update(creds, 'base64', 'utf8') + decipher.final('utf8');
     return JSON.parse(decrypted);
 }
-function encryptCredentials(key,credentials) {
-    var initVector = crypto.randomBytes(16);
-    var cipher = crypto.createCipheriv(encryptionAlgorithm, key, initVector);
-    return {"$":initVector.toString('hex') + cipher.update(JSON.stringify(credentials), 'utf8', 'base64') + cipher.final('base64')};
+function encryptCredentials(key, credentials) {
+    const initVector = crypto_1.default.randomBytes(16);
+    const cipher = crypto_1.default.createCipheriv(encryptionAlgorithm, key, initVector);
+    return { $: initVector.toString('hex') + cipher.update(JSON.stringify(credentials), 'utf8', 'base64') + cipher.final('base64') };
 }
-
-var api = module.exports = {
-    init: function(_runtime) {
+const api = {
+    init(_runtime) {
         runtime = _runtime;
         log = runtime.log;
         settings = runtime.settings;
@@ -55,121 +55,118 @@ var api = module.exports = {
         credentialsDef = {};
         encryptionEnabled = null;
     },
-
     /**
      * Sets the credentials from storage.
      */
-    load: async function (credentials) {
+    async load(credentials) {
         dirty = false;
-        var credentialsEncrypted = credentials.hasOwnProperty("$") && Object.keys(credentials).length === 1;
-
+        const credentialsEncrypted = credentials.hasOwnProperty('$') && Object.keys(credentials).length === 1;
         // Case 1: Active Project in place
         //  - use whatever its config says
-
         // Case 2: _credentialSecret unset, credentialSecret unset
         //  - generate _credentialSecret and encrypt
-
         // Case 3: _credentialSecret set, credentialSecret set
         //  - migrate from _credentialSecret to credentialSecret
         //  - delete _credentialSecret
-
         // Case 4: credentialSecret set
         //  - use it
-
-        var setupEncryptionPromise = Promise.resolve();
-
-        var projectKey = false;
-        var activeProject;
-        encryptionKeyType = "";
-
+        let setupEncryptionPromise = Promise.resolve();
+        let projectKey;
+        let activeProject;
+        encryptionKeyType = '';
         if (runtime.storage && runtime.storage.projects) {
             // projects enabled
             activeProject = runtime.storage.projects.getActiveProject();
             if (activeProject) {
                 projectKey = activeProject.credentialSecret;
                 if (!projectKey) {
-                    log.debug("red/runtime/nodes/credentials.load : using active project key - disabled");
-                    encryptionKeyType = "disabled";
+                    log.debug('red/runtime/nodes/credentials.load : using active project key - disabled');
+                    encryptionKeyType = 'disabled';
                     encryptionEnabled = false;
-                } else {
-                    log.debug("red/runtime/nodes/credentials.load : using active project key");
-                    encryptionKeyType = "project";
-                    encryptionKey = crypto.createHash('sha256').update(projectKey).digest();
+                }
+                else {
+                    log.debug('red/runtime/nodes/credentials.load : using active project key');
+                    encryptionKeyType = 'project';
+                    encryptionKey = crypto_1.default.createHash('sha256').update(projectKey).digest();
                     encryptionEnabled = true;
                 }
             }
         }
-
         if (encryptionKeyType === '') {
-            var defaultKey;
+            let defaultKey;
             try {
                 defaultKey = settings.get('_credentialSecret');
-            } catch(err) {
+            }
+            catch {
+                //
             }
             if (defaultKey) {
-                defaultKey = crypto.createHash('sha256').update(defaultKey).digest();
-                encryptionKeyType = "system";
+                defaultKey = crypto_1.default.createHash('sha256').update(defaultKey).digest();
+                encryptionKeyType = 'system';
             }
-            var userKey;
+            let userKey;
             try {
                 userKey = settings.get('credentialSecret');
-            } catch(err) {
+            }
+            catch (err) {
                 userKey = false;
             }
-
             if (userKey === false) {
-                encryptionKeyType = "disabled";
-                log.debug("red/runtime/nodes/credentials.load : user disabled encryption");
+                encryptionKeyType = 'disabled';
+                log.debug('red/runtime/nodes/credentials.load : user disabled encryption');
                 // User has disabled encryption
                 encryptionEnabled = false;
                 // Check if we have a generated _credSecret to decrypt with and remove
                 if (defaultKey) {
-                    log.debug("red/runtime/nodes/credentials.load : default key present. Will migrate");
+                    log.debug('red/runtime/nodes/credentials.load : default key present. Will migrate');
                     if (credentialsEncrypted) {
                         try {
-                            credentials = decryptCredentials(defaultKey,credentials)
-                        } catch(err) {
+                            credentials = decryptCredentials(defaultKey, credentials);
+                        }
+                        catch (err) {
                             credentials = {};
-                            log.warn(log._("nodes.credentials.error",{message:err.toString()}))
-                            var error = new Error("Failed to decrypt credentials");
-                            error.code = "credentials_load_failed";
-                            throw error;
+                            log.warn(log._('nodes.credentials.error', { message: err.toString() }));
+                            const error1 = new Error('Failed to decrypt credentials');
+                            error1.code = 'credentials_load_failed';
+                            throw error1;
                         }
                     }
                     dirty = true;
                     removeDefaultKey = true;
                 }
-            } else if (typeof userKey === 'string') {
+            }
+            else if (typeof userKey === 'string') {
                 if (!projectKey) {
-                    log.debug("red/runtime/nodes/credentials.load : user provided key");
+                    log.debug('red/runtime/nodes/credentials.load : user provided key');
                 }
                 if (encryptionKeyType !== 'project') {
                     encryptionKeyType = 'user';
                 }
                 // User has provided own encryption key, get the 32-byte hash of it
-                encryptionKey = crypto.createHash('sha256').update(userKey).digest();
+                encryptionKey = crypto_1.default.createHash('sha256').update(userKey).digest();
                 encryptionEnabled = true;
-
                 if (encryptionKeyType !== 'project' && defaultKey) {
-                    log.debug("red/runtime/nodes/credentials.load : default key present. Will migrate");
+                    log.debug('red/runtime/nodes/credentials.load : default key present. Will migrate');
                     // User has provided their own key, but we already have a default key
                     // Decrypt using default key
                     if (credentialsEncrypted) {
                         try {
-                            credentials = decryptCredentials(defaultKey,credentials)
-                        } catch(err) {
+                            credentials = decryptCredentials(defaultKey, credentials);
+                        }
+                        catch (err) {
                             credentials = {};
-                            log.warn(log._("nodes.credentials.error",{message:err.toString()}))
-                            var error = new Error("Failed to decrypt credentials");
-                            error.code = "credentials_load_failed";
+                            log.warn(log._('nodes.credentials.error', { message: err.toString() }));
+                            const error = new Error('Failed to decrypt credentials');
+                            error.code = 'credentials_load_failed';
                             throw error;
                         }
                     }
                     dirty = true;
                     removeDefaultKey = true;
                 }
-            } else {
-                log.debug("red/runtime/nodes/credentials.load : no user key present");
+            }
+            else {
+                log.debug('red/runtime/nodes/credentials.load : no user key present');
                 // User has not provide their own key
                 if (encryptionKeyType !== 'project') {
                     encryptionKeyType = 'system';
@@ -177,41 +174,42 @@ var api = module.exports = {
                 encryptionKey = defaultKey;
                 encryptionEnabled = true;
                 if (encryptionKey === undefined) {
-                    log.debug("red/runtime/nodes/credentials.load : no default key present - generating one");
+                    log.debug('red/runtime/nodes/credentials.load : no default key present - generating one');
                     // No user-provided key, no generated key
                     // Generate a new key
-                    defaultKey = crypto.randomBytes(32).toString('hex');
+                    defaultKey = crypto_1.default.randomBytes(32).toString('hex');
                     try {
-                        setupEncryptionPromise = settings.set('_credentialSecret',defaultKey);
-                        encryptionKey = crypto.createHash('sha256').update(defaultKey).digest();
-                    } catch(err) {
-                        log.debug("red/runtime/nodes/credentials.load : settings unavailable - disabling encryption");
+                        setupEncryptionPromise = settings.set('_credentialSecret', defaultKey);
+                        encryptionKey = crypto_1.default.createHash('sha256').update(defaultKey).digest();
+                    }
+                    catch (err) {
+                        log.debug('red/runtime/nodes/credentials.load : settings unavailable - disabling encryption');
                         // Settings unavailable
                         encryptionEnabled = false;
                         encryptionKey = null;
                     }
                     dirty = true;
-                } else {
-                    log.debug("red/runtime/nodes/credentials.load : using default key");
+                }
+                else {
+                    log.debug('red/runtime/nodes/credentials.load : using default key');
                 }
             }
         }
-
         if (encryptionEnabled && !dirty) {
             encryptedCredentials = credentials;
         }
-        log.debug("red/runtime/nodes/credentials.load : keyType="+encryptionKeyType);
+        log.debug('red/runtime/nodes/credentials.load : keyType=' + encryptionKeyType);
         if (encryptionKeyType === 'system') {
-            log.warn(log._("nodes.credentials.system-key-warning"));
+            log.warn(log._('nodes.credentials.system-key-warning'));
         }
-        return setupEncryptionPromise.then(function() {
-            var clearInvalidFlag = false;
-            if (credentials.hasOwnProperty("$")) {
+        return setupEncryptionPromise.then(function () {
+            let clearInvalidFlag = false;
+            if (credentials.hasOwnProperty('$')) {
                 if (encryptionEnabled === false) {
                     // The credentials appear to be encrypted, but our config
                     //  thinks they are not.
-                    var error = new Error("Failed to decrypt credentials");
-                    error.code = "credentials_load_failed";
+                    const error = new Error('Failed to decrypt credentials');
+                    error.code = 'credentials_load_failed';
                     if (activeProject) {
                         // This is a project with a bad key. Mark it as invalid
                         // TODO: this delves too deep into Project structure
@@ -222,14 +220,15 @@ var api = module.exports = {
                 }
                 // These are encrypted credentials
                 try {
-                    credentialCache = decryptCredentials(encryptionKey,credentials)
+                    credentialCache = decryptCredentials(encryptionKey, credentials);
                     clearInvalidFlag = true;
-                } catch(err) {
+                }
+                catch (err) {
                     credentialCache = {};
                     dirty = true;
-                    log.warn(log._("nodes.credentials.error",{message:err.toString()}))
-                    var error = new Error("Failed to decrypt credentials");
-                    error.code = "credentials_load_failed";
+                    log.warn(log._('nodes.credentials.error', { message: err.toString() }));
+                    const error = new Error('Failed to decrypt credentials');
+                    error.code = 'credentials_load_failed';
                     if (activeProject) {
                         // This is a project with a bad key. Mark it as invalid
                         // TODO: this delves too deep into Project structure
@@ -238,16 +237,16 @@ var api = module.exports = {
                     }
                     throw error;
                 }
-            } else {
-                if (encryptionEnabled) {
-                    // Our config expects the credentials to be encrypted but the encrypted object is not found
-                    log.warn(log._("nodes.credentials.encryptedNotFound"))
-                    credentialCache = credentials;
-                } else {
-                    // credentialSecret is set to False
-                    log.warn(log._("nodes.credentials.unencrypted"))
-                    credentialCache = credentials;
-                }
+            }
+            else if (encryptionEnabled) {
+                // Our config expects the credentials to be encrypted but the encrypted object is not found
+                log.warn(log._('nodes.credentials.encryptedNotFound'));
+                credentialCache = credentials;
+            }
+            else {
+                // credentialSecret is set to False
+                log.warn(log._('nodes.credentials.unencrypted'));
+                credentialCache = credentials;
             }
             if (clearInvalidFlag) {
                 // TODO: this delves too deep into Project structure
@@ -257,40 +256,36 @@ var api = module.exports = {
             }
         });
     },
-
     /**
      * Adds a set of credentials for the given node id.
      * @param id the node id for the credentials
      * @param creds an object of credential key/value pairs
      * @return a promise for backwards compatibility TODO: can this be removed?
      */
-    add: async function (id, creds) {
+    add(id, creds) {
         if (!credentialCache.hasOwnProperty(id) || JSON.stringify(creds) !== JSON.stringify(credentialCache[id])) {
             credentialCache[id] = creds;
             dirty = true;
         }
     },
-
     /**
      * Gets the credentials for the given node id.
      * @param id the node id for the credentials
      * @return the credentials
      */
-    get: function (id) {
+    get(id) {
         return credentialCache[id];
     },
-
     /**
      * Deletes the credentials for the given node id.
      * @param id the node id for the credentials
      * @return a promise for the saving of credentials to storage
      */
-    delete: function (id) {
+    delete(id) {
         delete credentialCache[id];
         dirty = true;
     },
-
-    clear: function() {
+    clear() {
         credentialCache = {};
         dirty = true;
     },
@@ -299,16 +294,16 @@ var api = module.exports = {
      * @param config a flow config
      * @return a promise for the saving of credentials to storage
      */
-    clean: async function (config) {
-        var existingIds = {};
-        config.forEach(function(n) {
+    clean(config) {
+        const existingIds = {};
+        config.forEach(function (n) {
             existingIds[n.id] = true;
             if (n.credentials) {
                 api.extract(n);
             }
         });
-        var deletedCredentials = false;
-        for (var c in credentialCache) {
+        let deletedCredentials = false;
+        for (const c in credentialCache) {
             if (credentialCache.hasOwnProperty(c)) {
                 if (!existingIds[c]) {
                     deletedCredentials = true;
@@ -320,17 +315,15 @@ var api = module.exports = {
             dirty = true;
         }
     },
-
     /**
      * Registers a node credential definition.
      * @param type the node type
      * @param definition the credential definition
      */
-    register: function (type, definition) {
-        var dashedType = type.replace(/\s+/g, '-');
+    register(type, definition) {
+        const dashedType = type.replace(/\s+/g, '-');
         credentialsDef[dashedType] = definition;
     },
-
     /**
      * Extracts and stores any credential updates in the provided node.
      * The provided node may have a .credentials property that contains
@@ -343,22 +336,21 @@ var api = module.exports = {
      *
      * @param node the node to extract credentials from
      */
-    extract: function(node) {
-        var nodeID = node.id;
-        var nodeType = node.type;
-        var cred;
-        var newCreds = node.credentials;
+    extract(node) {
+        const nodeID = node.id;
+        const nodeType = node.type;
+        let cred;
+        const newCreds = node.credentials;
         if (newCreds) {
             delete node.credentials;
-            var savedCredentials = credentialCache[nodeID] || {};
+            const savedCredentials = credentialCache[nodeID] || {};
             // Need to check the type of constructor for this node.
             // - Function : regular node
             // - !Function: subflow module
-
             if (/^subflow(:|$)/.test(nodeType) || typeof runtime.nodes.getType(nodeType) !== 'function') {
                 for (cred in newCreds) {
                     if (newCreds.hasOwnProperty(cred)) {
-                        if (newCreds[cred] === "__PWRD__") {
+                        if (newCreds[cred] === '__PWRD__') {
                             continue;
                         }
                         if (0 === newCreds[cred].length || /^\s*$/.test(newCreds[cred])) {
@@ -370,7 +362,6 @@ var api = module.exports = {
                             savedCredentials[cred] = newCreds[cred];
                             dirty = true;
                         }
-
                     }
                 }
                 if (/^subflow(:|$)/.test(nodeType)) {
@@ -383,20 +374,20 @@ var api = module.exports = {
                         }
                     }
                 }
-            } else {
-                var dashedType = nodeType.replace(/\s+/g, '-');
-                var definition = credentialsDef[dashedType];
+            }
+            else {
+                const dashedType = nodeType.replace(/\s+/g, '-');
+                const definition = credentialsDef[dashedType];
                 if (!definition) {
-                    log.warn(log._("nodes.credentials.not-registered",{type:nodeType}));
+                    log.warn(log._('nodes.credentials.not-registered', { type: nodeType }));
                     return;
                 }
-
                 for (cred in definition) {
                     if (definition.hasOwnProperty(cred)) {
                         if (newCreds[cred] === undefined) {
                             continue;
                         }
-                        if (definition[cred].type == "password" && newCreds[cred] == '__PWRD__') {
+                        if (definition[cred].type === 'password' && newCreds[cred] === '__PWRD__') {
                             continue;
                         }
                         if (0 === newCreds[cred].length || /^\s*$/.test(newCreds[cred])) {
@@ -414,59 +405,60 @@ var api = module.exports = {
             credentialCache[nodeID] = savedCredentials;
         }
     },
-
     /**
      * Gets the credential definition for the given node type
      * @param type the node type
      * @return the credential definition
      */
-    getDefinition: function (type) {
+    getDefinition(type) {
         return credentialsDef[type];
     },
-
-    dirty: function() {
+    dirty() {
         return dirty;
     },
-    setKey: function(key) {
+    setKey(key) {
         if (key) {
-            encryptionKey = crypto.createHash('sha256').update(key).digest();
+            encryptionKey = crypto_1.default.createHash('sha256').update(key).digest();
             encryptionEnabled = true;
             dirty = true;
-            encryptionKeyType = "project";
-        } else {
+            encryptionKeyType = 'project';
+        }
+        else {
             encryptionKey = null;
             encryptionEnabled = false;
             dirty = true;
-            encryptionKeyType = "disabled";
+            encryptionKeyType = 'disabled';
         }
     },
-    getKeyType: function() {
+    getKeyType() {
         return encryptionKeyType;
     },
-    export: async function() {
-        var result = credentialCache;
-
+    export() {
+        let result = credentialCache;
         if (encryptionEnabled) {
             if (dirty) {
                 try {
-                    log.debug("red/runtime/nodes/credentials.export : encrypting");
+                    log.debug('red/runtime/nodes/credentials.export : encrypting');
                     result = encryptCredentials(encryptionKey, credentialCache);
-                } catch(err) {
-                    log.warn(log._("nodes.credentials.error-saving",{message:err.toString()}))
                 }
-            } else {
+                catch (err) {
+                    log.warn(log._('nodes.credentials.error-saving', { message: err.toString() }));
+                }
+            }
+            else {
                 result = encryptedCredentials;
             }
         }
         dirty = false;
         if (removeDefaultKey) {
-            log.debug("red/runtime/nodes/credentials.export : removing unused default key");
-            return settings.delete('_credentialSecret').then(function() {
+            log.debug('red/runtime/nodes/credentials.export : removing unused default key');
+            return settings.delete('_credentialSecret').then(function () {
                 removeDefaultKey = false;
                 return result;
-            })
-        } else {
-            return result;
+            });
         }
+        return result;
     }
-}
+};
+exports.default = api;
+//# sourceMappingURL=credentials.js.map

@@ -1,3 +1,5 @@
+"use strict";
+/* eslint-disable no-prototype-builtins */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -13,36 +15,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  **/
-
-var clone = require("clone");
-var assert = require("assert");
-var log = require("@node-red/util").log; // TODO: separate module
-var util = require("@node-red/util").util;
-
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.persistentSettings = void 0;
+const clone_1 = __importDefault(require("clone"));
+const assert_1 = __importDefault(require("assert"));
+const util_1 = require("@node-red/util");
 // localSettings are those provided in the runtime settings.js file
-var localSettings = null;
+let localSettings = null;
 // globalSettings are provided by storage - .config.json on localfilesystem
-var globalSettings = null;
+let globalSettings = null;
 // nodeSettings are those settings that a node module defines as being available
-var nodeSettings = null;
-
+let nodeSettings = null;
 // A subset of globalSettings that deal with per-user settings
-var userSettings = null;
-
-var disableNodeSettings = null;
-var storage = null;
-
-var persistentSettings = {
-    init: function(settings) {
+let userSettings = null;
+let disableNodeSettings = null;
+let storage = null;
+exports.persistentSettings = {
+    init(settings) {
         localSettings = settings;
-        for (var i in settings) {
+        for (const i in settings) {
             /* istanbul ignore else */
             if (settings.hasOwnProperty(i) && i !== 'load' && i !== 'get' && i !== 'set' && i !== 'available' && i !== 'reset') {
                 // Don't allow any of the core functions get replaced via settings
-                (function() {
-                    var j = i;
-                    persistentSettings.__defineGetter__(j,function() { return localSettings[j]; });
-                    persistentSettings.__defineSetter__(j,function() { throw new Error("Property '"+j+"' is read-only"); });
+                // eslint-disable-next-line no-loop-func
+                (function () {
+                    const j = i;
+                    // eslint-disable-next-line no-underscore-dangle
+                    exports.persistentSettings.__defineGetter__(j, function () {
+                        return localSettings[j];
+                    });
+                    // eslint-disable-next-line no-underscore-dangle
+                    exports.persistentSettings.__defineSetter__(j, function () {
+                        throw new Error("Property '" + j + "' is read-only");
+                    });
                 })();
             }
         }
@@ -50,9 +58,9 @@ var persistentSettings = {
         nodeSettings = {};
         disableNodeSettings = {};
     },
-    load: function(_storage) {
+    load(_storage) {
         storage = _storage;
-        return storage.getSettings().then(function(_settings) {
+        return storage.getSettings().then(function (_settings) {
             globalSettings = _settings;
             if (globalSettings) {
                 userSettings = globalSettings.users || {};
@@ -62,61 +70,59 @@ var persistentSettings = {
             }
         });
     },
-    get: function(prop) {
+    get(prop) {
         if (prop === 'users') {
-            throw new Error("Do not access user settings directly. Use settings.getUserSettings");
+            throw new Error('Do not access user settings directly. Use settings.getUserSettings');
         }
         if (localSettings.hasOwnProperty(prop)) {
-            return clone(localSettings[prop]);
+            return (0, clone_1.default)(localSettings[prop]);
         }
         if (globalSettings === null) {
-            throw new Error(log._("settings.not-available"));
+            throw new Error(util_1.log._('settings.not-available'));
         }
-        return clone(globalSettings[prop]);
+        return (0, clone_1.default)(globalSettings[prop]);
     },
-
-    set: function(prop,value) {
+    set(prop, value) {
         if (prop === 'users') {
-            throw new Error("Do not access user settings directly. Use settings.setUserSettings");
+            throw new Error('Do not access user settings directly. Use settings.setUserSettings');
         }
         if (localSettings.hasOwnProperty(prop)) {
-            throw new Error(log._("settings.property-read-only", {prop:prop}));
+            throw new Error(util_1.log._('settings.property-read-only', { prop }));
         }
         if (globalSettings === null) {
-            throw new Error(log._("settings.not-available"));
+            throw new Error(util_1.log._('settings.not-available'));
         }
-        var current = globalSettings[prop];
-        globalSettings[prop] = clone(value);
+        const current = globalSettings[prop];
+        globalSettings[prop] = (0, clone_1.default)(value);
         try {
-            assert.deepEqual(current,value);
-        } catch(err) {
-            return storage.saveSettings(clone(globalSettings));
+            assert_1.default.deepEqual(current, value);
+        }
+        catch (err) {
+            return storage.saveSettings((0, clone_1.default)(globalSettings));
         }
         return Promise.resolve();
     },
-    delete: function(prop) {
+    delete(prop) {
         if (localSettings.hasOwnProperty(prop)) {
-            throw new Error(log._("settings.property-read-only", {prop:prop}));
+            throw new Error(util_1.log._('settings.property-read-only', { prop }));
         }
         if (globalSettings === null) {
-            throw new Error(log._("settings.not-available"));
+            throw new Error(util_1.log._('settings.not-available'));
         }
         if (globalSettings.hasOwnProperty(prop)) {
             delete globalSettings[prop];
-            return storage.saveSettings(clone(globalSettings));
+            return storage.saveSettings((0, clone_1.default)(globalSettings));
         }
         return Promise.resolve();
     },
-
-    available: function() {
-        return (globalSettings !== null);
+    available() {
+        return globalSettings !== null;
     },
-
-    reset: function() {
-        for (var i in localSettings) {
+    reset() {
+        for (const i in localSettings) {
             /* istanbul ignore else */
             if (localSettings.hasOwnProperty(i)) {
-                delete persistentSettings[i];
+                delete exports.persistentSettings[i];
             }
         }
         localSettings = null;
@@ -124,30 +130,32 @@ var persistentSettings = {
         userSettings = null;
         storage = null;
     },
-    registerNodeSettings: function(type, opts) {
-        var normalisedType = util.normaliseNodeTypeName(type);
-        for (var property in opts) {
+    registerNodeSettings(type, opts) {
+        const normalisedType = util_1.util.normaliseNodeTypeName(type);
+        for (const property in opts) {
             if (opts.hasOwnProperty(property)) {
                 if (!property.startsWith(normalisedType)) {
-                    throw new Error("Registered invalid property name '"+property+"'. Properties for this node must start with '"+normalisedType+"'");
+                    throw new Error("Registered invalid property name '" + property + "'. Properties for this node must start with '" + normalisedType + "'");
                 }
             }
         }
         nodeSettings[type] = opts;
     },
-    exportNodeSettings: function(safeSettings) {
-        for (var type in nodeSettings) {
+    exportNodeSettings(safeSettings) {
+        for (const type in nodeSettings) {
             if (nodeSettings.hasOwnProperty(type) && !disableNodeSettings[type]) {
-                var nodeTypeSettings = nodeSettings[type];
-                for (var property in nodeTypeSettings) {
+                const nodeTypeSettings = nodeSettings[type];
+                for (const property in nodeTypeSettings) {
                     if (nodeTypeSettings.hasOwnProperty(property)) {
-                        var setting = nodeTypeSettings[property];
+                        const setting = nodeTypeSettings[property];
                         if (setting.exportable) {
                             if (safeSettings.hasOwnProperty(property)) {
                                 // Cannot overwrite existing setting
-                            } else if (localSettings.hasOwnProperty(property)) {
+                            }
+                            else if (localSettings.hasOwnProperty(property)) {
                                 safeSettings[property] = localSettings[property];
-                            } else if (setting.hasOwnProperty('value')) {
+                            }
+                            else if (setting.hasOwnProperty('value')) {
                                 safeSettings[property] = setting.value;
                             }
                         }
@@ -155,36 +163,44 @@ var persistentSettings = {
                 }
             }
         }
-
         return safeSettings;
     },
-    enableNodeSettings: function(types) {
-        types.forEach(function(type) {
+    enableNodeSettings(types) {
+        types.forEach(function (type) {
             disableNodeSettings[type] = false;
         });
     },
-    disableNodeSettings: function(types) {
-        types.forEach(function(type) {
+    disableNodeSettings(types) {
+        types.forEach(function (type) {
             disableNodeSettings[type] = true;
         });
     },
-    getUserSettings: function(username) {
-        return clone(userSettings[username]);
+    getUserSettings(username) {
+        return (0, clone_1.default)(userSettings[username]);
     },
-    setUserSettings: function(username,settings) {
+    setUserSettings(username, settings) {
         if (globalSettings === null) {
-            throw new Error(log._("settings.not-available"));
+            throw new Error(util_1.log._('settings.not-available'));
         }
-        var current = userSettings[username];
+        const current = userSettings[username];
         userSettings[username] = settings;
         try {
-            assert.deepEqual(current,settings);
+            assert_1.default.deepEqual(current, settings);
             return Promise.resolve();
-        } catch(err) {
-            globalSettings.users = userSettings;
-            return storage.saveSettings(clone(globalSettings));
         }
-    }
-}
-
-module.exports = persistentSettings;
+        catch (err) {
+            globalSettings.users = userSettings;
+            return storage.saveSettings((0, clone_1.default)(globalSettings));
+        }
+    },
+    runtimeMetricInterval: undefined,
+    version: undefined,
+    UNSUPPORTED_VERSION: undefined,
+    externalModules: undefined,
+    settingsFile: undefined,
+    httpRoot: undefined,
+    readOnly: undefined,
+    httpStatic: undefined,
+    autoInstallModulesRetry: undefined
+};
+//# sourceMappingURL=settings.js.map

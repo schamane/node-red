@@ -20,6 +20,9 @@
 import fs from 'fs-extra';
 import path = require('node:path');
 import semver = require('semver');
+import has from 'lodash/has';
+import isFunction from 'lodash/isFunction';
+import isEmpty from 'lodash/isEmpty';
 import { init as localfilesystemInit, getNodeFiles, getModuleFiles } from './localfilesystem';
 import { getModuleInfo, addModule as registryAddModule, getTypeId, getNodeInfo, saveNodeList, addModuleDependency } from './registry';
 import { init as registryUtilIinit, createNodeApi } from './util';
@@ -50,7 +53,7 @@ function loadModuleTypeFiles(module, type) {
   const promises = [];
   for (const thingName in things) {
     /* istanbul ignore else */
-    if (things.hasOwnProperty(thingName)) {
+    if (has(things, thingName)) {
       if (module.name !== 'node-red' && first) {
         // Check the module directory exists
         first = false;
@@ -80,21 +83,15 @@ function loadModuleTypeFiles(module, type) {
           promise = loadPluginConfig(things[thingName]);
         }
 
+        const fn = () => (nodeSet) => {
+          things[thingName] = nodeSet;
+          return nodeSet;
+        };
+
         promises.push(
-          promise
-            .then(
-              (function () {
-                // const m = module.name;
-                const n = thingName;
-                return function (nodeSet) {
-                  things[n] = nodeSet;
-                  return nodeSet;
-                };
-              })()
-            )
-            .catch((err) => {
-              console.log(err);
-            })
+          promise.then(fn()).catch((err) => {
+            console.log(err);
+          })
         );
       } catch (err) {
         console.log(err);
@@ -137,7 +134,7 @@ function loadModuleFiles(modules) {
   let nodeList;
 
   return Promise.all(pluginPromises)
-    .then(function (results) {
+    .then((results) => {
       pluginList = results.filter((r) => !!r);
       // Initial plugin load has happened. Ensure modules that provide
       // plugins are in the registry now.
@@ -153,14 +150,12 @@ function loadModuleFiles(modules) {
       }
       return loadNodeSetList(pluginList);
     })
-    .then(function () {
-      return Promise.all(nodePromises);
-    })
-    .then(function (results) {
+    .then(() => Promise.all(nodePromises))
+    .then((results) => {
       nodeList = results.filter((r) => !!r);
       // Initial node load has happened. Ensure remaining modules are in the registry
       for (const module in modules) {
-        if (modules.hasOwnProperty(module)) {
+        if (has(modules, module)) {
           if (!modules[module].plugins || Object.keys(modules[module].plugins).length === 0) {
             if (!modules[module].err) {
               registryAddModule(modules[module]);
@@ -261,13 +256,13 @@ function loadNodeLocales(node) {
   const baseFile = node.file || node.template;
   return fs
     .stat(path.join(path.dirname(baseFile), 'locales'))
-    .then((stat) => {
+    .then(() => {
       node.namespace = node.id;
       return i18n
         .registerMessageCatalog(node.id, path.join(path.dirname(baseFile), 'locales'), path.basename(baseFile).replace(/\.[^.]+$/, '.json'))
         .then(() => node);
     })
-    .catch((err) => {
+    .catch(() => {
       node.namespace = node.module;
       return node;
     });
@@ -283,7 +278,7 @@ async function loadNodeConfig(fileInfo) {
   const info = getNodeInfo(id);
   let isEnabled = true;
   if (info) {
-    if (info.hasOwnProperty('loaded')) {
+    if (has(info, 'loaded')) {
       throw new Error(file + ' already loaded');
     }
     isEnabled = !(info.enabled === false);
@@ -370,17 +365,17 @@ export function loadNodeSet(node) {
     let r = require(node.file);
     // eslint-disable-next-line no-underscore-dangle
     r = r.__esModule ? r.default : r;
-    if (typeof r === 'function') {
+    if (isFunction(r)) {
       const red = createNodeApi(node);
       const promise = r(red);
-      if (promise !== null && typeof promise?.then === 'function') {
+      if (isFunction(promise?.then)) {
         loadPromise = promise
-          .then(function () {
+          .then(() => {
             node.enabled = true;
             node.loaded = true;
             return node;
           })
-          .catch(function (err) {
+          .catch((err) => {
             node.err = err;
             return node;
           });
@@ -422,17 +417,17 @@ function loadPlugin(plugin) {
   }
   try {
     const r = require(plugin.file);
-    if (typeof r === 'function') {
+    if (isFunction(r)) {
       const red = createNodeApi(plugin);
       const promise = r(red);
-      if (promise !== null && typeof promise.then === 'function') {
+      if (isFunction(promise.then)) {
         return promise
-          .then(function () {
+          .then(() => {
             plugin.enabled = true;
             plugin.loaded = true;
             return plugin;
           })
-          .catch(function (err) {
+          .catch((err) => {
             plugin.err = err;
             return plugin;
           });
@@ -464,43 +459,19 @@ function loadPlugin(plugin) {
 }
 
 function loadNodeSetList(nodes) {
-  const promises = [];
-  if (!nodes.length) {
+  if (isEmpty(nodes)) {
     return;
   }
-  nodes.forEach(function (node) {
-    if (!node.err) {
-      if (node.type === 'plugin') {
-        promises.push(
-          loadPlugin(node).catch((err) => {
-            // do nothing
-          })
-        );
-      } else {
-        promises.push(
-          loadNodeSet(node).catch((err) => {
-            // do nothing
-          })
-        );
-      }
-    } else {
-      promises.push(node);
-    }
-  });
+  const xfn = (n) => (n.type === 'plugin' ? loadPlugin(n) : loadNodeSet(n));
+  const promises = nodes.map((node) => (node.err ? node : xfn(node).catch()));
 
-  return Promise.all(promises).then(function () {
-    if (settings.available()) {
-      return saveNodeList();
-    }
-    return;
-  });
+  return Promise.all(promises).then(() => (settings.available() ? saveNodeList() : undefined));
 }
 
 export function addModule(module) {
   if (!settings.available()) {
     throw new CustomErrorWithCode('Settings unavailable');
   }
-  const nodes = [];
   const existingInfo = getModuleInfo(module);
   if (existingInfo) {
     // TODO: nls
@@ -561,7 +532,7 @@ function loadNodeHelp(node, lang) {
 export function getNodeHelp(node, lang) {
   if (!node.help[lang]) {
     let help = loadNodeHelp(node, lang);
-    if (help === null) {
+    if (!help === null) {
       const langParts = lang.split('-');
       if (langParts.length === 2) {
         help = loadNodeHelp(node, langParts[0]);
